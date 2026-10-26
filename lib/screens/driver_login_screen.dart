@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
+import '../core/api_constants.dart';
 import '../services/api_service.dart';
 import 'driver_home_screen.dart';
 
@@ -11,19 +12,106 @@ class DriverLoginScreen extends StatefulWidget {
 }
 
 class _DriverLoginScreenState extends State<DriverLoginScreen> {
-  final _usernameController = TextEditingController(text: 'driver_bambang');
-  final _passwordController = TextEditingController(text: 'password123');
+  final _usernameController = TextEditingController(text: 'driver1');
+  final _passwordController = TextEditingController(text: 'driver123');
   final _apiService = ApiService();
   bool _isLoading = false;
+  bool _isPasswordVisible = false;
   String? _errorMessage;
 
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  // Dialog untuk konfigurasi Server URL jika tes via HP fisik
+  Future<void> _showServerSettingsDialog() async {
+    final currentUrl = await ApiConstants.getBaseUrl();
+    final urlController = TextEditingController(text: currentUrl);
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.settings_ethernet, color: AppTheme.primaryBlue),
+            SizedBox(width: 8),
+            Text('Pengaturan Server URL', style: TextStyle(fontSize: 16)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Gunakan URL/IP server backend (contoh: http://10.0.2.2:3000 untuk Android Emulator, atau IP LAN PC jika tes di HP fisik):',
+              style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: urlController,
+              decoration: InputDecoration(
+                labelText: 'Base URL API',
+                hintText: 'http://10.0.2.2:3000',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await ApiConstants.resetBaseUrl();
+              if (ctx.mounted) Navigator.pop(ctx);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Server URL di-reset ke default environment'),
+                    backgroundColor: AppTheme.textMuted,
+                  ),
+                );
+              }
+            },
+            child: const Text('Reset'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await ApiConstants.setBaseUrl(urlController.text);
+              if (ctx.mounted) Navigator.pop(ctx);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Server URL disimpan: ${urlController.text}'),
+                    backgroundColor: AppTheme.primaryBlue,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(80, 40),
+              backgroundColor: AppTheme.primaryBlue,
+            ),
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _handleLogin() async {
+    // Sembunyikan keyboard saat submit
+    FocusScope.of(context).unfocus();
+
     final username = _usernameController.text.trim();
     final password = _passwordController.text.trim();
 
     if (username.isEmpty || password.isEmpty) {
       setState(() {
-        _errorMessage = 'Nama pengguna dan kata sandi wajib diisi';
+        _errorMessage = 'Nama pengguna dan kata sandi wajib diisi.';
       });
       return;
     }
@@ -60,45 +148,57 @@ class _DriverLoginScreenState extends State<DriverLoginScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Logo & Header
+                // Top Header Info
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.settings, color: AppTheme.textMuted),
+                      tooltip: 'Atur IP Server Komputer',
+                      onPressed: _showServerSettingsDialog,
+                    ),
+                  ],
+                ),
+
+                // Logo LIE Cargo
                 Center(
                   child: Container(
-                    width: 72,
-                    height: 72,
+                    width: 76,
+                    height: 76,
                     decoration: BoxDecoration(
                       color: AppTheme.primaryBlue,
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(22),
                       boxShadow: [
                         BoxShadow(
-                          color: AppTheme.primaryBlue.withOpacity(0.3),
-                          blurRadius: 16,
+                          color: AppTheme.primaryBlue.withOpacity(0.35),
+                          blurRadius: 18,
                           offset: const Offset(0, 8),
                         ),
                       ],
                     ),
                     child: const Icon(
                       Icons.local_shipping,
-                      size: 40,
+                      size: 44,
                       color: Colors.white,
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 18),
                 const Text(
                   'LIE Driver',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 26,
+                    fontSize: 28,
                     fontWeight: FontWeight.w900,
                     color: AppTheme.darkNavy,
                     letterSpacing: 0.5,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 const Text(
                   'Aplikasi Tugas Pengemudi Kargo B2B',
                   textAlign: TextAlign.center,
@@ -107,9 +207,9 @@ class _DriverLoginScreenState extends State<DriverLoginScreen> {
                     color: AppTheme.textMuted,
                   ),
                 ),
-                const SizedBox(height: 36),
+                const SizedBox(height: 32),
 
-                // Error alert
+                // Error Message Box
                 if (_errorMessage != null) ...[
                   Container(
                     padding: const EdgeInsets.all(12),
@@ -119,6 +219,7 @@ class _DriverLoginScreenState extends State<DriverLoginScreen> {
                       border: Border.all(color: const Color(0xFFFCA5A5)),
                     ),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Icon(Icons.error_outline,
                             color: AppTheme.dangerRed, size: 20),
@@ -139,7 +240,7 @@ class _DriverLoginScreenState extends State<DriverLoginScreen> {
                   const SizedBox(height: 16),
                 ],
 
-                // Form Input Besar
+                // Input Nama Pengguna
                 const Text(
                   'Nama Pengguna',
                   style: TextStyle(
@@ -151,12 +252,14 @@ class _DriverLoginScreenState extends State<DriverLoginScreen> {
                 const SizedBox(height: 8),
                 TextField(
                   controller: _usernameController,
+                  textInputAction: TextInputAction.next,
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   decoration: InputDecoration(
-                    hintText: 'Masukkan nama pengguna',
+                    hintText: 'Contoh: driver_bambang',
                     prefixIcon: const Icon(Icons.person_outline),
                     filled: true,
                     fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
@@ -167,8 +270,9 @@ class _DriverLoginScreenState extends State<DriverLoginScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 18),
 
+                // Input Kata Sandi
                 const Text(
                   'Kata Sandi',
                   style: TextStyle(
@@ -180,13 +284,29 @@ class _DriverLoginScreenState extends State<DriverLoginScreen> {
                 const SizedBox(height: 8),
                 TextField(
                   controller: _passwordController,
-                  obscureText: true,
+                  obscureText: !_isPasswordVisible,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _handleLogin(),
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   decoration: InputDecoration(
-                    hintText: 'Masukkan kata sandi',
+                    hintText: 'Masukkan kata sandi akun',
                     prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _isPasswordVisible
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        color: AppTheme.textMuted,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isPasswordVisible = !_isPasswordVisible;
+                        });
+                      },
+                    ),
                     filled: true,
                     fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
@@ -197,7 +317,7 @@ class _DriverLoginScreenState extends State<DriverLoginScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 28),
 
                 // Tombol Masuk Besar
                 ElevatedButton(
@@ -205,6 +325,7 @@ class _DriverLoginScreenState extends State<DriverLoginScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryBlue,
                     foregroundColor: Colors.white,
+                    elevation: 2,
                   ),
                   child: _isLoading
                       ? const SizedBox(
@@ -215,17 +336,27 @@ class _DriverLoginScreenState extends State<DriverLoginScreen> {
                             strokeWidth: 2.5,
                           ),
                         )
-                      : const Text('MASUK KE APLIKASI'),
+                      : const Text(
+                          'MASUK KE APLIKASI',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
                 ),
 
-                const SizedBox(height: 20),
-                const Text(
-                  'Sesi login otomatis disimpan selama 45 hari.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppTheme.textMuted,
-                  ),
+                const SizedBox(height: 18),
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.verified_user_outlined, size: 16, color: AppTheme.successGreen),
+                    SizedBox(width: 6),
+                    Text(
+                      'Sesi login otomatis tersimpan selama 45 hari.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: AppTheme.textMuted,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
