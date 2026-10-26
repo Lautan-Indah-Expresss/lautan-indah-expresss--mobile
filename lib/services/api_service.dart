@@ -7,11 +7,21 @@ import '../core/session_manager.dart';
 class ApiService {
   final http.Client _client = http.Client();
 
+  // Helper untuk header request dengan bearer token
+  Future<Map<String, String>> _getHeaders() async {
+    final token = await SessionManager.getToken();
+    return {
+      'Content-Type': 'application/json',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    };
+  }
+
   // 1. Login Driver
   Future<Map<String, dynamic>> login(String username, String password) async {
     try {
+      final url = await ApiConstants.loginUrl;
       final response = await _client.post(
-        Uri.parse(ApiConstants.loginUrl),
+        Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'username': username.trim(),
@@ -39,7 +49,7 @@ class ApiService {
     } catch (e) {
       return {
         'success': false,
-        'message': 'Gagal terhubung ke server. Periksa koneksi internet.'
+        'message': 'Gagal terhubung ke server. Periksa jaringan atau IP server.'
       };
     }
   }
@@ -48,11 +58,11 @@ class ApiService {
   Future<List<dynamic>> getShipments() async {
     try {
       final driverId = await SessionManager.getDriverId();
-      final url = driverId != null
-          ? '${ApiConstants.shipmentsUrl}?driver_id=$driverId'
-          : ApiConstants.shipmentsUrl;
+      final baseUrl = await ApiConstants.shipmentsUrl;
+      final url = driverId != null ? '$baseUrl?driver_id=$driverId' : baseUrl;
 
-      final response = await _client.get(Uri.parse(url));
+      final headers = await _getHeaders();
+      final response = await _client.get(Uri.parse(url), headers: headers);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success'] == true && data['data'] != null) {
@@ -68,9 +78,10 @@ class ApiService {
   // 3. Unggah Foto Kamera
   Future<String?> uploadPhoto(XFile file) async {
     try {
+      final url = await ApiConstants.uploadUrl;
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse(ApiConstants.uploadUrl),
+        Uri.parse(url),
       );
       request.files.add(
         await http.MultipartFile.fromPath('file', file.path),
@@ -102,9 +113,11 @@ class ApiService {
     required double longitude,
   }) async {
     try {
+      final url = await ApiConstants.checkpointUrl(shipmentId);
+      final headers = await _getHeaders();
       final response = await _client.post(
-        Uri.parse(ApiConstants.checkpointUrl(shipmentId)),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse(url),
+        headers: headers,
         body: jsonEncode({
           'checkpoint_type': checkpointType,
           'status_label': statusLabel,
