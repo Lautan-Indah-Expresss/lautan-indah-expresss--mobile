@@ -95,7 +95,9 @@ class _DriverLoginScreenState extends State<DriverLoginScreen> {
               minimumSize: const Size(80, 40),
               backgroundColor: AppTheme.primaryBlue,
             ),
-            child: const Text('Simpan'),
+            child: const Text('Simpan',style: TextStyle(
+    color: Colors.white, 
+  ),),
           ),
         ],
       ),
