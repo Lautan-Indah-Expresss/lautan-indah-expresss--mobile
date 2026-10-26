@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/theme.dart';
 import '../core/session_manager.dart';
 import '../services/api_service.dart';
+import '../widgets/shipment_card.dart';
 import 'driver_login_screen.dart';
 import 'driver_delivery_screen.dart';
 
@@ -17,6 +18,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
   String _driverName = 'Sopir';
   List<dynamic> _shipments = [];
   bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -25,9 +27,14 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
   }
 
   Future<void> _loadData() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
     final name = await SessionManager.getDriverName();
     final data = await _apiService.getShipments();
+
     if (!mounted) return;
     setState(() {
       _driverName = name;
@@ -48,42 +55,72 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
+        elevation: 0,
+        backgroundColor: AppTheme.primaryBlue,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               'Tugas Saya Hari Ini',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+              ),
             ),
-            Text(
-              'Sopir: $_driverName',
-              style: const TextStyle(fontSize: 12, color: Colors.white70),
+            const SizedBox(height: 2),
+            Row(
+              children: [
+                const Icon(Icons.account_circle, size: 14, color: Colors.white70),
+                const SizedBox(width: 4),
+                Text(
+                  _driverName,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white70,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Keluar',
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            tooltip: 'Perbarui Data',
+            onPressed: _loadData,
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            tooltip: 'Keluar Akun',
             onPressed: () {
               showDialog(
                 context: context,
                 builder: (_) => AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   title: const Text('Keluar dari Akun?'),
-                  content: const Text('Anda perlu masuk kembali dengan kata sandi.'),
+                  content: const Text(
+                    'Anda akan keluar dari aplikasi LIE Driver. Anda dapat masuk kembali dengan kata sandi kapan saja.',
+                  ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
                       child: const Text('Batal'),
                     ),
-                    TextButton(
+                    ElevatedButton(
                       onPressed: () {
                         Navigator.pop(context);
                         _logout();
                       },
-                      child: const Text('Ya, Keluar',
-                          style: TextStyle(color: AppTheme.dangerRed)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.dangerRed,
+                      ),
+                      child: const Text('Ya, Keluar'),
                     ),
                   ],
                 ),
@@ -94,185 +131,103 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: _loadData,
+        color: AppTheme.primaryBlue,
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _shipments.isEmpty
+            ? const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(color: AppTheme.primaryBlue),
+                    SizedBox(height: 16),
+                    Text(
+                      'Memuat tugas pengiriman...',
+                      style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                    ),
+                  ],
+                ),
+              )
+            : _errorMessage != null
                 ? ListView(
                     padding: const EdgeInsets.all(24),
-                    children: const [
-                      SizedBox(height: 80),
-                      Icon(Icons.assignment_turned_in_outlined,
+                    children: [
+                      const SizedBox(height: 80),
+                      const Icon(Icons.cloud_off_rounded,
                           size: 64, color: AppTheme.textMuted),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       Text(
-                        'Tidak Ada Tugas Pengiriman Aktif',
+                        _errorMessage!,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 16,
+                        style: const TextStyle(
+                          fontSize: 15,
                           fontWeight: FontWeight.bold,
                           color: AppTheme.textDark,
                         ),
                       ),
-                      SizedBox(height: 8),
-                      Text(
-                        'Tarik layar ke bawah untuk memperbarui data tugas baru dari kantor.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppTheme.textMuted,
+                      const SizedBox(height: 16),
+                      Center(
+                        child: ElevatedButton.icon(
+                          onPressed: _loadData,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Coba Lagi'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primaryBlue,
+                          ),
                         ),
                       ),
                     ],
                   )
-                : ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _shipments.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final item = _shipments[index];
-                      final status = item['status'] as String? ?? 'tertunda';
-                      final isArrived = item['driver_arrived'] == true;
-
-                      // Translate status to simple driver words
-                      String statusText = 'Belum Berangkat';
-                      Color statusBg = const Color(0xFFFEF3C7);
-                      Color statusColor = const Color(0xFFB45309);
-
-                      if (status == 'terkirim') {
-                        statusText = 'Selesai Terkirim';
-                        statusBg = const Color(0xFFD1FAE5);
-                        statusColor = const Color(0xFF065F46);
-                      } else if (status == 'kendala') {
-                        statusText = 'Ada Kendala di Jalan';
-                        statusBg = const Color(0xFFFEE2E2);
-                        statusColor = const Color(0xFF991B1B);
-                      } else if (isArrived) {
-                        statusText = 'Sampai di Tujuan (Menunggu Penerima)';
-                        statusBg = const Color(0xFFE0E7FF);
-                        statusColor = const Color(0xFF3730A3);
-                      } else if (status == 'dalam_pengiriman') {
-                        statusText = 'Dalam Perjalanan';
-                        statusBg = const Color(0xFFDBEAFE);
-                        statusColor = const Color(0xFF1E40AF);
-                      }
-
-                      return InkWell(
-                        onTap: () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => DriverDeliveryScreen(shipment: item),
+                : _shipments.isEmpty
+                    ? ListView(
+                        padding: const EdgeInsets.all(24),
+                        children: const [
+                          SizedBox(height: 80),
+                          Icon(Icons.assignment_turned_in_outlined,
+                              size: 72, color: AppTheme.textMuted),
+                          SizedBox(height: 18),
+                          Text(
+                            'Belum Ada Tugas Pengiriman',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              color: AppTheme.darkNavy,
                             ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Saat ini belum ada surat jalan yang ditugaskan ke armada Anda.\nTarik layar ke bawah untuk cek pembaruan tugas dari admin.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.textMuted,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 16),
+                        itemCount: _shipments.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final item = _shipments[index] as Map<String, dynamic>;
+                          return ShipmentCard(
+                            shipment: item,
+                            onTap: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      DriverDeliveryScreen(shipment: item),
+                                ),
+                              );
+                              _loadData();
+                            },
                           );
-                          _loadData();
                         },
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.03),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    item['resi'] ?? '-',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w900,
-                                      fontFamily: 'monospace',
-                                      color: AppTheme.primaryBlue,
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: statusBg,
-                                      borderRadius:
-                                          BorderRadius.circular(20),
-                                    ),
-                                    child: Text(
-                                      statusText,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                        color: statusColor,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  const Icon(Icons.location_on_outlined,
-                                      size: 18, color: AppTheme.textMuted),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                      '${item['origin_city']} ➔ ${item['destination_city']}',
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppTheme.textDark,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  const Icon(Icons.business_outlined,
-                                      size: 18, color: AppTheme.textMuted),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                      'Tujuan: ${item['receiver_company'] ?? '-'}',
-                                      style: const TextStyle(
-                                        fontSize: 13,
-                                        color: AppTheme.textMuted,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  const Icon(Icons.local_shipping_outlined,
-                                      size: 18, color: AppTheme.textMuted),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    '${item['nopol'] ?? '-'} • ${item['total_colli'] ?? 1} Koli (${item['actual_weight_kg'] ?? 0} kg)',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppTheme.textDark,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                      ),
       ),
     );
   }
