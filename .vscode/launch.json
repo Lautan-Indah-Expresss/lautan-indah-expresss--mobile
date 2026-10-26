@@ -1,0 +1,29 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter: Local (Emulator / PC)",
+      "request": "launch",
+      "type": "dart",
+      "args": [
+        "--dart-define-from-file=config/env_local.json"
+      ]
+    },
+    {
+      "name": "Flutter: Development (Staging)",
+      "request": "launch",
+      "type": "dart",
+      "args": [
+        "--dart-define-from-file=config/env_dev.json"
+      ]
+    },
+    {
+      "name": "Flutter: Production",
+      "request": "launch",
+      "type": "dart",
+      "args": [
+        "--dart-define-from-file=config/env_prod.json"
+      ]
+    }
+  ]
+}
