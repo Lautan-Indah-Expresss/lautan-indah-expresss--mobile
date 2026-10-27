@@ -410,8 +410,9 @@ class _DriverDeliveryScreenState extends State<DriverDeliveryScreen> {
       statusLabel: 'Armada Tiba di Tujuan (Menunggu Penerima)',
       description: 'Armada telah sampai di gerbang gudang penerima. Menunggu tanda terima resmi.',
       photoUrl: photoUrl,
-      latitude: _currentPosition?.latitude ?? -6.2,
-      longitude: _currentPosition?.longitude ?? 106.816,
+      // Koordinat arrival selalu mengunci titik destinasi penerima
+      latitude: double.tryParse(_shipment['destination_lat']?.toString() ?? '') ?? (_currentPosition?.latitude ?? -6.2),
+      longitude: double.tryParse(_shipment['destination_lng']?.toString() ?? '') ?? (_currentPosition?.longitude ?? 106.816),
     );
 
     setState(() => _isSubmitting = false);
