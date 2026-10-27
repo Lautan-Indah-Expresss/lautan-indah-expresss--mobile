@@ -514,6 +514,8 @@ class _DriverDeliveryScreenState extends State<DriverDeliveryScreen> {
     final status = _shipment['status'] as String? ?? 'tertunda';
     final hasActiveIssue = _shipment['has_active_issue'] == true;
     final isArrived = _shipment['driver_arrived'] == true;
+    // Cek apakah supir sudah absen berangkat (status bukan tertunda ATAU sudah ada checkpoint departure)
+    final hasDeparted = status != 'tertunda' || _checkpoints.any((c) => c['checkpoint_type'] == 'departure_selfie');
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -754,7 +756,8 @@ class _DriverDeliveryScreenState extends State<DriverDeliveryScreen> {
 
                 // 1. Absen Berangkat
                 ElevatedButton.icon(
-                  onPressed: (status == 'tertunda') ? _handleDepartureSelfie : null,
+                  // 1. Absen hanya aktif jika BELUM absen berangkat (tertunda)
+                  onPressed: !hasDeparted ? _handleDepartureSelfie : null,
                   icon: const Icon(Icons.camera_alt),
                   label: const Text('1. FOTO ABSEN & MULAI JALAN'),
                   style: ElevatedButton.styleFrom(
@@ -769,7 +772,8 @@ class _DriverDeliveryScreenState extends State<DriverDeliveryScreen> {
 
                 // 2. Lapor Posisi Sekarang
                 ElevatedButton.icon(
-                  onPressed: (status != 'terkirim' && !isArrived) ? _handleTransitUpdate : null,
+                  // 2. Lapor Posisi HANYA aktif jika SUDAH absen berangkat dan BELUM sampai tujuan
+                  onPressed: (hasDeparted && !isArrived && status != 'terkirim') ? _handleTransitUpdate : null,
                   icon: const Icon(Icons.add_location_alt),
                   label: const Text('2. LIHAT PETA & LAPOR POSISI'),
                   style: ElevatedButton.styleFrom(
@@ -784,7 +788,8 @@ class _DriverDeliveryScreenState extends State<DriverDeliveryScreen> {
 
                 // 3. Lapor Kendala
                 ElevatedButton.icon(
-                  onPressed: (status != 'terkirim' && !hasActiveIssue) ? _handleIncidentReport : null,
+                  // 3. Lapor Kendala HANYA aktif jika SUDAH absen berangkat dan belum ada kendala aktif
+                  onPressed: (hasDeparted && !hasActiveIssue && status != 'terkirim') ? _handleIncidentReport : null,
                   icon: const Icon(Icons.build_circle),
                   label: const Text('3. LAPOR KENDALA DI JALAN'),
                   style: ElevatedButton.styleFrom(
@@ -800,7 +805,8 @@ class _DriverDeliveryScreenState extends State<DriverDeliveryScreen> {
 
                 // 4. Sudah Sampai di Tujuan
                 ElevatedButton.icon(
-                  onPressed: (status != 'terkirim' && !isArrived) ? _handleArrival : null,
+                  // 4. Sudah Sampai di Tujuan HANYA aktif jika SUDAH absen berangkat dan BELUM sampai tujuan
+                  onPressed: (hasDeparted && !isArrived && status != 'terkirim') ? _handleArrival : null,
                   icon: const Icon(Icons.flag_circle),
                   label: const Text('4. SUDAH SAMPAI DI GUDANG TUJUAN'),
                   style: ElevatedButton.styleFrom(
