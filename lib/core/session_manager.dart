@@ -48,6 +48,18 @@ class SessionManager {
     return prefs.getString(_keyDriverName) ?? 'Sopir';
   }
 
+  // Get driver username
+  static Future<String> getDriverUsername() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyDriverUsername) ?? '-';
+  }
+
+  // Get driver phone
+  static Future<String> getDriverPhone() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyDriverPhone) ?? '-';
+  }
+
   // Clear session on logout
   static Future<void> clearSession() async {
     final prefs = await SharedPreferences.getInstance();

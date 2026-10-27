@@ -75,6 +75,26 @@ class ApiService {
     }
   }
 
+  // 2b. Ambil Detail Pengiriman Driver Beserta Checkpoints
+  Future<Map<String, dynamic>?> getShipmentDetail(int shipmentId) async {
+    try {
+      final baseUrl = await ApiConstants.shipmentsUrl;
+      final url = '$baseUrl/$shipmentId';
+
+      final headers = await _getHeaders();
+      final response = await _client.get(Uri.parse(url), headers: headers);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          return data['data'] as Map<String, dynamic>;
+        }
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   // 3. Unggah Foto Kamera
   Future<String?> uploadPhoto(XFile file) async {
     try {
