@@ -210,7 +210,7 @@ class _DriverDeliveryScreenState extends State<DriverDeliveryScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => ActionLocationDialog(
         title: 'Lapor Posisi Lapangan (Transit)',
-        subtitle: 'Peta lokasi terpasang â€¢ Supir wajib foto & tulis keterangan',
+        subtitle: 'Peta lokasi terpasang • Supir wajib foto & tulis keterangan',
         inputLabel: 'Tuliskan Lokasi & Kegiatan Saat Ini:',
         inputHint: 'Contoh: Masuk Tol Cikampek KM 57, sedang istirahat makan & cek ban...',
         actionButtonText: 'KIRIM LAPORAN POSISI SEKARANG',
@@ -296,7 +296,7 @@ class _DriverDeliveryScreenState extends State<DriverDeliveryScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => ActionLocationDialog(
         title: 'Lapor Kendala Darurat di Jalan',
-        subtitle: 'Peta titik kendala tercatat â€¢ Wajib foto bukti kerusakan armada',
+        subtitle: 'Peta titik kendala tercatat • Wajib foto bukti kerusakan armada',
         inputLabel: 'Jelaskan Kerusakan / Hambatan di Jalan:',
         inputHint: 'Contoh: Ban belakang sebelah kiri pecah di KM 82 arah Bandung, sedang menunggu montir...',
         actionButtonText: 'KIRIM PERINGATAN KENDALA KE KANTOR',
@@ -723,7 +723,7 @@ class _DriverDeliveryScreenState extends State<DriverDeliveryScreen> {
                             _buildInfoTile(
                               Icons.inventory_2_outlined,
                               'Muatan Kargo',
-                              '${_shipment['total_colli'] ?? 1} Koli â€¢ ${_shipment['actual_weight_kg'] ?? 0} Kg',
+                              '${_shipment['total_colli'] ?? 1} Koli • ${_shipment['actual_weight_kg'] ?? 0} Kg',
                             ),
                             _buildInfoTile(
                               Icons.local_shipping_outlined,
@@ -1003,4 +1003,5 @@ class _DriverDeliveryScreenState extends State<DriverDeliveryScreen> {
     );
   }
 }
+
 
