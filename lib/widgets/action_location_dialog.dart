@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
@@ -8,6 +8,7 @@ import 'driver_map_view.dart';
 class ActionLocationDialog extends StatefulWidget {
   final String title;
   final String subtitle;
+  final bool showTextInput;
   final String inputLabel;
   final String inputHint;
   final String actionButtonText;
@@ -24,6 +25,7 @@ class ActionLocationDialog extends StatefulWidget {
     super.key,
     required this.title,
     required this.subtitle,
+    this.showTextInput = true,
     required this.inputLabel,
     required this.inputHint,
     required this.actionButtonText,
@@ -153,6 +155,7 @@ class _ActionLocationDialogState extends State<ActionLocationDialog> {
                 ),
                 const SizedBox(height: 16),
 
+                if (widget.showTextInput) ...[
                 // 2. INPUT MANUAL KEGIATAN / KENDALA (SUPIR TIDAK BISA ASAL PILIH)
                 Text(
                   widget.inputLabel,
@@ -189,6 +192,7 @@ class _ActionLocationDialogState extends State<ActionLocationDialog> {
                 ),
                 const SizedBox(height: 16),
 
+                ],
                 // 3. FOTO WAJIB DARI KAMERA
                 const Text(
                   'Foto Bukti Lapangan (Wajib Kamera):',
@@ -311,7 +315,7 @@ class _ActionLocationDialogState extends State<ActionLocationDialog> {
             child: ElevatedButton.icon(
               onPressed: () {
                 final note = _noteController.text.trim();
-                if (note.isEmpty) {
+                if (widget.showTextInput && note.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Harap tulis ${widget.inputLabel.toLowerCase()}!'),
@@ -353,3 +357,4 @@ class _ActionLocationDialogState extends State<ActionLocationDialog> {
     );
   }
 }
+

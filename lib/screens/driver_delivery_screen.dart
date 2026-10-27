@@ -111,14 +111,44 @@ class _DriverDeliveryScreenState extends State<DriverDeliveryScreen> {
   }
 
   // 1. Aksi: Absen Foto Selfie di Depan Truk & Mulai Jalan (Langsung Kamera)
+  // 1. Aksi: Absen Foto Selfie di Depan Truk & Mulai Jalan (Peta Lokasi + Wajib Foto Kamera)
   Future<void> _handleDepartureSelfie() async {
     if (_isSubmitting || _isOpeningAction) return;
     setState(() => _isOpeningAction = true);
 
-    final photo = await _pickStrictCameraPhoto();
+    await _refreshGps();
     if (!mounted) return;
     setState(() => _isOpeningAction = false);
 
+    final driverLatLng = _currentPosition != null
+        ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
+        : const LatLng(-6.2, 106.816);
+
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => ActionLocationDialog(
+        title: 'Absen Mulai Perjalanan',
+        subtitle: 'Peta rute awal • Ambil foto selfie bersama armada truk',
+        showTextInput: false,
+        inputLabel: '',
+        inputHint: '',
+        actionButtonText: 'MULAI JALAN SEKARANG',
+        actionColor: AppTheme.primaryBlue,
+        actionIcon: Icons.local_shipping,
+        driverPosition: driverLatLng,
+        accuracy: _currentAccuracy,
+        originCity: _shipment['origin_city'] ?? 'Asal',
+        destinationCity: _shipment['destination_city'] ?? 'Tujuan',
+        checkpoints: _checkpoints,
+        onPickCameraPhoto: _pickStrictCameraPhoto,
+      ),
+    );
+
+    if (result == null || !mounted) return;
+
+    final XFile? photo = result['photo'] as XFile?;
     if (photo == null) return;
 
     final confirm = await ConfirmationDialog.show(
@@ -135,7 +165,7 @@ class _DriverDeliveryScreenState extends State<DriverDeliveryScreen> {
       _isSubmitting = true;
       _submittingStatus = 'Mengunggah foto absen & mencatat rute berangkat...';
     });
-    await _refreshGps();
+
     final photoUrl = await _apiService.uploadPhoto(photo);
 
     final success = await _apiService.sendCheckpoint(
@@ -161,8 +191,6 @@ class _DriverDeliveryScreenState extends State<DriverDeliveryScreen> {
       );
     }
   }
-
-  // 2. Aksi: Lapor Posisi Sekarang (Peta + Tulis Manual + Foto Kamera Wajib)
   Future<void> _handleTransitUpdate() async {
     if (_isSubmitting || _isOpeningAction) return;
     setState(() => _isOpeningAction = true);
@@ -396,6 +424,7 @@ class _DriverDeliveryScreenState extends State<DriverDeliveryScreen> {
       builder: (ctx) => ActionLocationDialog(
         title: 'Konfirmasi Tiba di Gerbang Tujuan',
         subtitle: 'Peta lokasi tersinkronisasi • Wajib foto gerbang gudang penerima',
+        showTextInput: false,
         inputLabel: 'Keterangan Kedatangan / Posisi Parkir:',
         inputHint: 'Contoh: Sudah sampai di pintu gerbang utama gudang penerima, parkir di dermaga...',
         actionButtonText: 'KIRIM BUKTI SUDAH SAMPAI DI TUJUAN',
