@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
@@ -182,7 +182,7 @@ class _DriverDeliveryScreenState extends State<DriverDeliveryScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => ActionLocationDialog(
         title: 'Lapor Posisi Lapangan (Transit)',
-        subtitle: 'Peta lokasi terpasang • Supir wajib foto & tulis keterangan',
+        subtitle: 'Peta lokasi terpasang â€¢ Supir wajib foto & tulis keterangan',
         inputLabel: 'Tuliskan Lokasi & Kegiatan Saat Ini:',
         inputHint: 'Contoh: Masuk Tol Cikampek KM 57, sedang istirahat makan & cek ban...',
         actionButtonText: 'KIRIM LAPORAN POSISI SEKARANG',
@@ -268,7 +268,7 @@ class _DriverDeliveryScreenState extends State<DriverDeliveryScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => ActionLocationDialog(
         title: 'Lapor Kendala Darurat di Jalan',
-        subtitle: 'Peta titik kendala tercatat • Wajib foto bukti kerusakan armada',
+        subtitle: 'Peta titik kendala tercatat â€¢ Wajib foto bukti kerusakan armada',
         inputLabel: 'Jelaskan Kerusakan / Hambatan di Jalan:',
         inputHint: 'Contoh: Ban belakang sebelah kiri pecah di KM 82 arah Bandung, sedang menunggu montir...',
         actionButtonText: 'KIRIM PERINGATAN KENDALA KE KANTOR',
@@ -376,22 +376,50 @@ class _DriverDeliveryScreenState extends State<DriverDeliveryScreen> {
     }
   }
 
-  // 4. Aksi: Sudah Sampai di Gudang Tujuan (Wajib Foto Kamera Gerbang Penerima)
+  // 4. Aksi: Sudah Sampai di Gudang Tujuan (Peta Lokasi + Wajib Foto Gerbang)
   Future<void> _handleArrival() async {
     if (_isSubmitting || _isOpeningAction) return;
     setState(() => _isOpeningAction = true);
 
-    final photo = await _pickStrictCameraPhoto();
+    await _refreshGps();
     if (!mounted) return;
     setState(() => _isOpeningAction = false);
 
-    if (photo == null) return;
+    final driverLatLng = _currentPosition != null
+        ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
+        : const LatLng(-6.2, 106.816);
+
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => ActionLocationDialog(
+        title: 'Konfirmasi Tiba di Gerbang Tujuan',
+        subtitle: 'Peta lokasi tersinkronisasi • Wajib foto gerbang gudang penerima',
+        inputLabel: 'Keterangan Kedatangan / Posisi Parkir:',
+        inputHint: 'Contoh: Sudah sampai di pintu gerbang utama gudang penerima, parkir di dermaga...',
+        actionButtonText: 'KIRIM BUKTI SUDAH SAMPAI DI TUJUAN',
+        actionColor: AppTheme.successGreen,
+        actionIcon: Icons.flag_circle,
+        driverPosition: driverLatLng,
+        accuracy: _currentAccuracy,
+        originCity: _shipment['origin_city'] ?? 'Asal',
+        destinationCity: _shipment['destination_city'] ?? 'Tujuan',
+        checkpoints: _checkpoints,
+        onPickCameraPhoto: _pickStrictCameraPhoto,
+      ),
+    );
+
+    if (result == null || !mounted) return;
+
+    final XFile? photo = result['photo'] as XFile?;
+    final String note = (result['note'] as String? ?? '').trim();
 
     final confirm = await ConfirmationDialog.show(
       context,
-      title: 'Konfirmasi Tiba di Tujuan?',
-      message: 'Foto gerbang kedatangan akan dikirim. Status akan berubah menjadi "Sampai di Tujuan" dan menunggu tanda terima penerima.',
-      confirmText: 'Ya, Saya Sudah Tiba',
+      title: 'Kirim Laporan Kedatangan?',
+      message: 'Foto dan titik lokasi Anda akan dikirim. Status pengiriman resmi menjadi "Armada Tiba di Tujuan" dan penerima dapat melakukan konfirmasi terima barang.',
+      confirmText: 'Ya, Kirim Sekarang',
       confirmColor: AppTheme.successGreen,
       icon: Icons.flag_circle,
     );
@@ -399,20 +427,22 @@ class _DriverDeliveryScreenState extends State<DriverDeliveryScreen> {
 
     setState(() {
       _isSubmitting = true;
-      _submittingStatus = 'Mengunggah foto bukti tiba di gerbang tujuan & mencatat waktu...';
+      _submittingStatus = 'Mengunggah foto bukti gerbang tiba & mencatat GPS lokasi...';
     });
-    await _refreshGps();
-    final photoUrl = await _apiService.uploadPhoto(photo);
+
+    String? photoUrl;
+    if (photo != null) {
+      photoUrl = await _apiService.uploadPhoto(photo);
+    }
 
     final success = await _apiService.sendCheckpoint(
       shipmentId: _shipment['id'],
       checkpointType: 'arrival_driver',
       statusLabel: 'Armada Tiba di Tujuan (Menunggu Penerima)',
-      description: 'Armada telah sampai di gerbang gudang penerima. Menunggu tanda terima resmi.',
+      description: note.isNotEmpty ? note : 'Armada telah sampai di gerbang gudang penerima. Menunggu tanda terima resmi.',
       photoUrl: photoUrl,
-      // Koordinat arrival selalu mengunci titik destinasi penerima
-      latitude: double.tryParse(_shipment['destination_lat']?.toString() ?? '') ?? (_currentPosition?.latitude ?? -6.2),
-      longitude: double.tryParse(_shipment['destination_lng']?.toString() ?? '') ?? (_currentPosition?.longitude ?? 106.816),
+      latitude: _currentPosition?.latitude ?? -6.2,
+      longitude: _currentPosition?.longitude ?? 106.816,
     );
 
     setState(() => _isSubmitting = false);
@@ -432,25 +462,24 @@ class _DriverDeliveryScreenState extends State<DriverDeliveryScreen> {
             ],
           ),
           content: const Text(
-            'Laporan tiba berhasil dicatat!\n\nHarap tunggu pihak gudang penerima memeriksa muatan dan memasukkan PIN tanda terima di web pelacakan.',
+            'Laporan kedatangan berhasil dicatat! Status paket kini menjadi "Sampai di Tujuan". Menunggu pihak penerima memeriksa barang dan menandatangani tanda terima.',
             style: TextStyle(fontSize: 13, height: 1.5),
           ),
           actions: [
             ElevatedButton(
               onPressed: () => Navigator.pop(context),
               style: ElevatedButton.styleFrom(
-                minimumSize: const Size(110, 44),
-                backgroundColor: AppTheme.primaryBlue,
+                backgroundColor: AppTheme.successGreen,
+                foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('Mengerti', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: const Text('OK, Mengerti'),
             ),
           ],
         ),
       );
     }
   }
-
   @override
   Widget build(BuildContext context) {
     final status = _shipment['status'] as String? ?? 'tertunda';
@@ -663,7 +692,7 @@ class _DriverDeliveryScreenState extends State<DriverDeliveryScreen> {
                             _buildInfoTile(
                               Icons.inventory_2_outlined,
                               'Muatan Kargo',
-                              '${_shipment['total_colli'] ?? 1} Koli • ${_shipment['actual_weight_kg'] ?? 0} Kg',
+                              '${_shipment['total_colli'] ?? 1} Koli â€¢ ${_shipment['actual_weight_kg'] ?? 0} Kg',
                             ),
                             _buildInfoTile(
                               Icons.local_shipping_outlined,
@@ -939,3 +968,4 @@ class _DriverDeliveryScreenState extends State<DriverDeliveryScreen> {
     );
   }
 }
+
