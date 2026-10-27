@@ -34,7 +34,7 @@ class ShipmentCard extends StatelessWidget {
       statusColor = const Color(0xFF991B1B);
       statusIcon = Icons.warning_amber_rounded;
     } else if (isArrived) {
-      statusText = 'Sampai di Tujuan (Menunggu Diterima)';
+      statusText = 'Sampai di Tujuan';
       statusBg = const Color(0xFFEDE9FE);
       statusColor = const Color(0xFF5B21B6);
       statusIcon = Icons.warehouse;
@@ -90,44 +90,48 @@ class ShipmentCard extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'NOMOR RESI',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textMuted,
-                          letterSpacing: 0.5,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'NOMOR RESI',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textMuted,
+                            letterSpacing: 0.5,
+                          ),
                         ),
-                      ),
-                      Text(
-                        resi,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          fontFamily: 'monospace',
-                          color: AppTheme.primaryBlue,
+                        Text(
+                          resi,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w900,
+                            fontFamily: 'monospace',
+                            color: AppTheme.primaryBlue,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                     decoration: BoxDecoration(
                       color: statusBg,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(statusIcon, size: 14, color: statusColor),
-                        const SizedBox(width: 5),
+                        Icon(statusIcon, size: 13, color: statusColor),
+                        const SizedBox(width: 4),
                         Text(
                           statusText,
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 10,
                             fontWeight: FontWeight.bold,
                             color: statusColor,
                           ),
