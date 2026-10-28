@@ -47,6 +47,7 @@ class _ActionLocationDialogState extends State<ActionLocationDialog> {
   final TextEditingController _noteController = TextEditingController();
   XFile? _capturedPhoto;
   bool _isCapturing = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -55,7 +56,10 @@ class _ActionLocationDialogState extends State<ActionLocationDialog> {
   }
 
   Future<void> _takePhoto() async {
-    setState(() => _isCapturing = true);
+    setState(() {
+      _isCapturing = true;
+      _errorMessage = null;
+    });
     final photo = await widget.onPickCameraPhoto();
     setState(() {
       _capturedPhoto = photo;
@@ -168,6 +172,9 @@ class _ActionLocationDialogState extends State<ActionLocationDialog> {
                 const SizedBox(height: 8),
                 TextField(
                   controller: _noteController,
+                  onChanged: (_) {
+                    if (_errorMessage != null) setState(() => _errorMessage = null);
+                  },
                   maxLines: 3,
                   style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                   decoration: InputDecoration(
@@ -312,44 +319,70 @@ class _ActionLocationDialogState extends State<ActionLocationDialog> {
               color: Colors.white,
               border: Border(top: BorderSide(color: Color(0xFFF1F5F9))),
             ),
-            child: ElevatedButton.icon(
-              onPressed: () {
-                final note = _noteController.text.trim();
-                if (widget.showTextInput && note.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Harap tulis ${widget.inputLabel.toLowerCase()}!'),
-                      backgroundColor: AppTheme.dangerRed,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_errorMessage != null) ...[
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF2F2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFFCA5A5)),
                     ),
-                  );
-                  return;
-                }
-                if (_capturedPhoto == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Wajib mengambil foto kamera bukti lapangan!'),
-                      backgroundColor: AppTheme.dangerRed,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline, color: AppTheme.dangerRed, size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _errorMessage!,
+                            style: const TextStyle(
+                              color: AppTheme.dangerRed,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  );
-                  return;
-                }
+                  ),
+                ],
+                ElevatedButton.icon(
+                  onPressed: () {
+                    final note = _noteController.text.trim();
+                    if (widget.showTextInput && note.isEmpty) {
+                      setState(() {
+                        _errorMessage = 'Harap isi keterangan/alasan terlebih dahulu!';
+                      });
+                      return;
+                    }
+                    if (_capturedPhoto == null) {
+                      setState(() {
+                        _errorMessage = 'Wajib ambil foto bukti kamera terlebih dahulu!';
+                      });
+                      return;
+                    }
 
-                Navigator.pop(context, {
-                  'note': note,
-                  'photo': _capturedPhoto,
-                });
-              },
-              icon: Icon(widget.actionIcon),
-              label: Text(widget.actionButtonText),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: widget.actionColor,
-                foregroundColor: Colors.white,
-                minimumSize: const Size.fromHeight(50),
-                textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+                    Navigator.pop(context, {
+                      'note': note,
+                      'photo': _capturedPhoto,
+                    });
+                  },
+                  icon: Icon(widget.actionIcon),
+                  label: Text(widget.actionButtonText),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: widget.actionColor,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(50),
+                    textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ],
