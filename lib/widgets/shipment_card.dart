@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../core/theme.dart';
 
 class ShipmentCard extends StatelessWidget {
@@ -52,6 +52,8 @@ class ShipmentCard extends StatelessWidget {
     final nopol = shipment['nopol'] ?? '-';
     final colli = shipment['total_colli'] ?? 1;
     final weight = shipment['actual_weight_kg'] ?? 0;
+    final tripCode = shipment['trip_code'] as String?;
+    final dropSequence = shipment['drop_sequence'] as int? ?? 1;
 
     return InkWell(
       onTap: onTap,
@@ -94,14 +96,37 @@ class ShipmentCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'NOMOR RESI',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.textMuted,
-                            letterSpacing: 0.5,
-                          ),
+                        Row(
+                          children: [
+                            if (tripCode != null) ...[
+                              Container(
+                                margin: const EdgeInsets.only(right: 6),
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE0E7FF),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0xFFC7D2FE)),
+                                ),
+                                child: Text(
+                                  'DROP $dropSequence',
+                                  style: const TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFF3730A3),
+                                  ),
+                                ),
+                              ),
+                            ],
+                            const Text(
+                              'NOMOR RESI',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.textMuted,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
                         ),
                         Text(
                           resi,
@@ -308,3 +333,4 @@ class ShipmentCard extends StatelessWidget {
     );
   }
 }
+
