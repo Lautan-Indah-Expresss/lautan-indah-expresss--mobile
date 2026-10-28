@@ -1,3 +1,5 @@
+﻿import 'dart:io';
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
@@ -16,18 +18,25 @@ class ApiService {
     };
   }
 
-  // 1. Login Driver
+  // 1. Login Driver (Dengan Timeout 8 Detik & Deteksi Masalah Jaringan yang Jelas)
   Future<Map<String, dynamic>> login(String username, String password) async {
     try {
       final url = await ApiConstants.loginUrl;
-      final response = await _client.post(
-        Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'username': username.trim(),
-          'password': password.trim(),
-        }),
-      );
+      final response = await _client
+          .post(
+            Uri.parse(url),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'username': username.trim(),
+              'password': password.trim(),
+            }),
+          )
+          .timeout(
+            const Duration(seconds: 8),
+            onTimeout: () {
+              throw TimeoutException('Koneksi timeout. Server tidak merespon dalam 8 detik.');
+            },
+          );
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200 && data['success'] == true) {
@@ -43,13 +52,23 @@ class ApiService {
       } else {
         return {
           'success': false,
-          'message': data['error'] ?? 'Nama pengguna atau kata sandi salah'
+          'message': data['error'] ?? 'Nama pengguna atau kata sandi salah.'
         };
       }
+    } on TimeoutException {
+      return {
+        'success': false,
+        'message': 'Koneksi lemot / Timeout! Server tidak merespon dalam 8 detik. Pastikan HP dan server terhubung ke Wi-Fi yang sama.'
+      };
+    } on SocketException {
+      return {
+        'success': false,
+        'message': 'Gagal menghubungi server. Periksa koneksi internet atau cek Server URL di ikon gerigi pojok kanan atas.'
+      };
     } catch (e) {
       return {
         'success': false,
-        'message': 'Gagal terhubung ke server. Periksa jaringan atau IP server.'
+        'message': 'Gagal masuk: Gagal terhubung ke server API. Periksa IP server Anda.'
       };
     }
   }
@@ -158,3 +177,4 @@ class ApiService {
     }
   }
 }
+
