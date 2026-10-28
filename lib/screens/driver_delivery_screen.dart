@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
@@ -182,7 +182,8 @@ class _DriverDeliveryScreenState extends State<DriverDeliveryScreen> {
     if (!mounted) return;
 
     if (success) {
-      _initDataAndGps();
+      await _initDataAndGps();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Absen Berangkat berhasil disimpan! Selamat bertugas.'),
@@ -788,8 +789,8 @@ class _DriverDeliveryScreenState extends State<DriverDeliveryScreen> {
 
                 // 3. Lapor Kendala
                 ElevatedButton.icon(
-                  // 3. Lapor Kendala HANYA aktif jika SUDAH absen berangkat dan belum ada kendala aktif
-                  onPressed: (hasDeparted && !hasActiveIssue && status != 'terkirim') ? _handleIncidentReport : null,
+                  // 3. Lapor Kendala HANYA aktif jika SUDAH jalan, BELUM sampai di tujuan (isArrived == false), dan belum ada kendala aktif
+                  onPressed: (hasDeparted && !isArrived && !hasActiveIssue && status != 'terkirim') ? _handleIncidentReport : null,
                   icon: const Icon(Icons.build_circle),
                   label: const Text('3. LAPOR KENDALA DI JALAN'),
                   style: ElevatedButton.styleFrom(
