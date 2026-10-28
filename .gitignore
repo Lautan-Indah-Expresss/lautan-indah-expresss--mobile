@@ -46,3 +46,7 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Environment configurations (Dart define)
+config/env_*.json
+!config/env.example.json
