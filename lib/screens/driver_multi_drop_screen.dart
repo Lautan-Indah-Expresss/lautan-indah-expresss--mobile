@@ -583,17 +583,21 @@ class _DriverMultiDropScreenState extends State<DriverMultiDropScreen> {
                                   child: const Icon(Icons.alt_route, color: AppTheme.primaryBlue, size: 18),
                                 ),
                                 const SizedBox(width: 8),
-                                const Text(
-                                  'Surat Jalan Terpadu Multi-Drop',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppTheme.darkNavy,
+                                Expanded(
+                                  child: const Text(
+                                    'Surat Jalan Terpadu Multi-Drop',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppTheme.darkNavy,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                                const Spacer(),
+                                const SizedBox(width: 8),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
                                   decoration: BoxDecoration(
                                     color: hasDeparted ? const Color(0xFFEFF6FF) : const Color(0xFFFFFBEB),
                                     borderRadius: BorderRadius.circular(8),
@@ -604,7 +608,7 @@ class _DriverMultiDropScreenState extends State<DriverMultiDropScreen> {
                                   child: Text(
                                     hasDeparted ? 'DALAM PERJALANAN' : 'TERTUNDA',
                                     style: TextStyle(
-                                      fontSize: 10,
+                                      fontSize: 9.5,
                                       fontWeight: FontWeight.w900,
                                       color: hasDeparted ? const Color(0xFF1E40AF) : const Color(0xFFB45309),
                                     ),
