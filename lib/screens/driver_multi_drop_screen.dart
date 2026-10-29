@@ -452,7 +452,12 @@ class _DriverMultiDropScreenState extends State<DriverMultiDropScreen> {
         _checkpoints.any((c) => c['checkpoint_type'] == 'departure_selfie');
 
     final sampleNopol = (_shipmentList.isNotEmpty ? _shipmentList.first['nopol'] : '-') ?? '-';
+    final sampleVehicle = (_shipmentList.isNotEmpty ? _shipmentList.first['vehicle_name'] : null) as String?;
     final sampleOrigin = (_shipmentList.isNotEmpty ? _shipmentList.first['origin_city'] : 'Asal') ?? 'Asal';
+
+    final armadaSubtitle = (sampleVehicle != null && sampleVehicle.trim().isNotEmpty)
+        ? '$sampleVehicle • $sampleNopol'
+        : 'Armada $sampleNopol';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -465,7 +470,7 @@ class _DriverMultiDropScreenState extends State<DriverMultiDropScreen> {
               style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
             ),
             Text(
-              'Trip Multi-Drop • Armada $sampleNopol',
+              armadaSubtitle,
               style: const TextStyle(fontSize: 11, color: Colors.white70),
             ),
           ],
