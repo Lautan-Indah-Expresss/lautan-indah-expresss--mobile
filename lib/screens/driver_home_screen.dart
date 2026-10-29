@@ -690,7 +690,6 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
       ),
     );
   }
-  }
 
   Widget _buildMultiDropTripCard({
     required Map<String, dynamic> tripData,
