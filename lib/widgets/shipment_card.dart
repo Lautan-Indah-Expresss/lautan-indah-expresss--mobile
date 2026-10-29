@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../core/theme.dart';
 
 class ShipmentCard extends StatelessWidget {
@@ -79,89 +79,86 @@ class ShipmentCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header Kartu: Nomor Resi & Badge Status
+            // Header Kartu: Baris 1 (Drop N, Teks NOMOR RESI, Status Resi) & Baris 2 (Nomor Resi Besar)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-                border: const Border(
+              decoration: const BoxDecoration(
+                color: Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
+                border: Border(
                   bottom: BorderSide(color: Color(0xFFF1F5F9)),
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                  // Baris Atas: [Drop 1] [NOMOR RESI] --------- [Status Resi]
+                  Row(
+                    children: [
+                      if (tripCode != null) ...[
+                        Container(
+                          margin: const EdgeInsets.only(right: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE0E7FF),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFFC7D2FE)),
+                          ),
+                          child: Text(
+                            'DROP $dropSequence',
+                            style: const TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF3730A3),
+                            ),
+                          ),
+                        ),
+                      ],
+                      const Text(
+                        'NOMOR RESI',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textMuted,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: statusBg,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            if (tripCode != null) ...[
-                              Container(
-                                margin: const EdgeInsets.only(right: 6),
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFE0E7FF),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: const Color(0xFFC7D2FE)),
-                                ),
-                                child: Text(
-                                  'DROP $dropSequence',
-                                  style: const TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w900,
-                                    color: Color(0xFF3730A3),
-                                  ),
-                                ),
-                              ),
-                            ],
-                            const Text(
-                              'NOMOR RESI',
+                            Icon(statusIcon, size: 12, color: statusColor),
+                            const SizedBox(width: 4),
+                            Text(
+                              statusText,
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
-                                color: AppTheme.textMuted,
-                                letterSpacing: 0.5,
+                                color: statusColor,
                               ),
                             ),
                           ],
                         ),
-                        Text(
-                          resi,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w900,
-                            fontFamily: 'monospace',
-                            color: AppTheme.primaryBlue,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: statusBg,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(statusIcon, size: 13, color: statusColor),
-                        const SizedBox(width: 4),
-                        Text(
-                          statusText,
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: statusColor,
-                          ),
-                        ),
-                      ],
+                  const SizedBox(height: 6),
+                  // Baris Bawah: Nomor Resi Penuh
+                  Text(
+                    resi,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      fontFamily: 'monospace',
+                      color: AppTheme.darkNavy,
+                      letterSpacing: 0.3,
                     ),
                   ),
                 ],
