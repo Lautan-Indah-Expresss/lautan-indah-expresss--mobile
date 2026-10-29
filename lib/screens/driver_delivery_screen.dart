@@ -7,6 +7,7 @@ import '../services/api_service.dart';
 import '../widgets/checkpoint_photos_view.dart';
 import '../widgets/action_location_dialog.dart';
 import '../widgets/confirmation_dialog.dart';
+import 'driver_multi_drop_screen.dart';
 
 class DriverDeliveryScreen extends StatefulWidget {
   final Map<String, dynamic> shipment;
@@ -515,6 +516,8 @@ class _DriverDeliveryScreenState extends State<DriverDeliveryScreen> {
     final status = _shipment['status'] as String? ?? 'tertunda';
     final hasActiveIssue = _shipment['has_active_issue'] == true;
     final isArrived = _shipment['driver_arrived'] == true;
+    final tripCode = _shipment['trip_code'] as String?;
+    final isMultiDrop = tripCode != null && tripCode.isNotEmpty;
     // Cek apakah supir sudah absen berangkat (status bukan tertunda ATAU sudah ada checkpoint departure)
     final hasDeparted = status != 'tertunda' || _checkpoints.any((c) => c['checkpoint_type'] == 'departure_selfie');
 
@@ -743,82 +746,185 @@ class _DriverDeliveryScreenState extends State<DriverDeliveryScreen> {
                 CheckpointPhotosView(checkpoints: _checkpoints),
                 const SizedBox(height: 24),
 
-                // 4. 4 TOMBOL AKSI UTAMA BESAR PRO-MAX
-                const Text(
-                  'Tombol Aksi Lapangan (Wajib Foto Langsung):',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textMuted,
-                    letterSpacing: 0.5,
+                // 4. TOMBOL AKSI UTAMA
+                if (isMultiDrop) ...[
+                  // Notifikasi Khusus Multi-Drop Singkat & Tombol Redirect
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFCBD5E1)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.alt_route, color: AppTheme.primaryBlue, size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Resi Bagian dari Multi-Drop ($tripCode)',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 13,
+                                  color: AppTheme.darkNavy,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Absen jalan & lapor kendala dikelola di Kontrol Multi-Drop.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF64748B),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            final all = await _apiService.getShipments();
+                            final tripShipments = all
+                                .where((s) => (s['trip_code'] as String? ?? '').trim() == tripCode)
+                                .map((s) => s as Map<String, dynamic>)
+                                .toList();
+                            if (!context.mounted) return;
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => DriverMultiDropScreen(
+                                  tripCode: tripCode,
+                                  shipments: tripShipments.isNotEmpty ? tripShipments : [_shipment],
+                                ),
+                              ),
+                            );
+                            _initDataAndGps();
+                          },
+                          icon: const Icon(Icons.alt_route, size: 16),
+                          label: const Text('BUKA KONTROL MULTI-DROP'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.darkNavy,
+                            side: const BorderSide(color: Color(0xFF0F172A), width: 1.2),
+                            backgroundColor: Colors.white,
+                            minimumSize: const Size.fromHeight(40),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
+                  const SizedBox(height: 16),
 
-                // 1. Absen Berangkat
-                ElevatedButton.icon(
-                  // 1. Absen hanya aktif jika BELUM absen berangkat (tertunda)
-                  onPressed: !hasDeparted ? _handleDepartureSelfie : null,
-                  icon: const Icon(Icons.camera_alt),
-                  label: const Text('1. FOTO ABSEN & MULAI JALAN'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryBlue,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size.fromHeight(54),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+                  // Khusus Multi-Drop: Hanya Tombol 4 (Tiba di Gudang Tujuan)
+                  const Text(
+                    'Konfirmasi Tiba di Tujuan Resi Ini:',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textMuted,
+                      letterSpacing: 0.5,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
+                  const SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    // Bisa lapor sampai tujuan jika belum berstatus selesai/terkirim dan belum arrived
+                    onPressed: (!isArrived && status != 'terkirim') ? _handleArrival : null,
+                    icon: const Icon(Icons.flag_circle),
+                    label: Text(
+                      isArrived ? 'SUDAH SAMPAI DI TUJUAN' : 'SUDAH SAMPAI DI GUDANG TUJUAN',
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isArrived ? const Color(0xFFE2E8F0) : AppTheme.successGreen,
+                      foregroundColor: isArrived ? AppTheme.textMuted : Colors.white,
+                      minimumSize: const Size.fromHeight(52),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                ] else ...[
+                  // Single-Drop Reguler (4 Tombol Lengkap)
+                  const Text(
+                    'Tombol Aksi Lapangan (Wajib Foto Langsung):',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textMuted,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
 
-                // 2. Lapor Posisi Sekarang
-                ElevatedButton.icon(
-                  // 2. Lapor Posisi HANYA aktif jika SUDAH absen berangkat dan BELUM sampai tujuan
-                  onPressed: (hasDeparted && !isArrived && status != 'terkirim') ? _handleTransitUpdate : null,
-                  icon: const Icon(Icons.add_location_alt),
-                  label: const Text('2. LIHAT PETA & LAPOR POSISI'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0F172A),
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size.fromHeight(54),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+                  // 1. Absen Berangkat
+                  ElevatedButton.icon(
+                    // 1. Absen hanya aktif jika BELUM absen berangkat (tertunda)
+                    onPressed: !hasDeparted ? _handleDepartureSelfie : null,
+                    icon: const Icon(Icons.camera_alt),
+                    label: const Text('1. FOTO ABSEN & MULAI JALAN'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryBlue,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size.fromHeight(54),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
+                  const SizedBox(height: 12),
 
-                // 3. Lapor Kendala
-                ElevatedButton.icon(
-                  // 3. Lapor Kendala HANYA aktif jika SUDAH jalan, BELUM sampai di tujuan (isArrived == false), dan belum ada kendala aktif
-                  onPressed: (hasDeparted && !isArrived && !hasActiveIssue && status != 'terkirim') ? _handleIncidentReport : null,
-                  icon: const Icon(Icons.build_circle),
-                  label: const Text('3. LAPOR KENDALA DI JALAN'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFEF2F2),
-                    foregroundColor: AppTheme.dangerRed,
-                    side: const BorderSide(color: Color(0xFFFECACA), width: 1.5),
-                    minimumSize: const Size.fromHeight(54),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+                  // 2. Lapor Posisi Sekarang
+                  ElevatedButton.icon(
+                    // 2. Lapor Posisi HANYA aktif jika SUDAH absen berangkat dan BELUM sampai tujuan
+                    onPressed: (hasDeparted && !isArrived && status != 'terkirim') ? _handleTransitUpdate : null,
+                    icon: const Icon(Icons.add_location_alt),
+                    label: const Text('2. LIHAT PETA & LAPOR POSISI'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0F172A),
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size.fromHeight(54),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
+                  const SizedBox(height: 12),
 
-                // 4. Sudah Sampai di Tujuan
-                ElevatedButton.icon(
-                  // 4. Sudah Sampai di Tujuan HANYA aktif jika SUDAH absen berangkat dan BELUM sampai tujuan
-                  onPressed: (hasDeparted && !isArrived && status != 'terkirim') ? _handleArrival : null,
-                  icon: const Icon(Icons.flag_circle),
-                  label: const Text('4. SUDAH SAMPAI DI GUDANG TUJUAN'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isArrived ? const Color(0xFFE2E8F0) : AppTheme.successGreen,
-                    foregroundColor: isArrived ? AppTheme.textMuted : Colors.white,
-                    minimumSize: const Size.fromHeight(54),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+                  // 3. Lapor Kendala
+                  ElevatedButton.icon(
+                    // 3. Lapor Kendala HANYA aktif jika SUDAH jalan, BELUM sampai di tujuan (isArrived == false), dan belum ada kendala aktif
+                    onPressed: (hasDeparted && !isArrived && !hasActiveIssue && status != 'terkirim') ? _handleIncidentReport : null,
+                    icon: const Icon(Icons.build_circle),
+                    label: const Text('3. LAPOR KENDALA DI JALAN'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFEF2F2),
+                      foregroundColor: AppTheme.dangerRed,
+                      side: const BorderSide(color: Color(0xFFFECACA), width: 1.5),
+                      minimumSize: const Size.fromHeight(54),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 28),
+                  const SizedBox(height: 12),
+
+                  // 4. Sudah Sampai di Tujuan
+                  ElevatedButton.icon(
+                    // 4. Sudah Sampai di Tujuan HANYA aktif jika SUDAH absen berangkat dan BELUM sampai tujuan
+                    onPressed: (hasDeparted && !isArrived && status != 'terkirim') ? _handleArrival : null,
+                    icon: const Icon(Icons.flag_circle),
+                    label: const Text('4. SUDAH SAMPAI DI GUDANG TUJUAN'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isArrived ? const Color(0xFFE2E8F0) : AppTheme.successGreen,
+                      foregroundColor: isArrived ? AppTheme.textMuted : Colors.white,
+                      minimumSize: const Size.fromHeight(54),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                ],
               ],
             ),
 
