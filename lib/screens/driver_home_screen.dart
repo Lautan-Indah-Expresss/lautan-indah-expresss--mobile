@@ -53,15 +53,18 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
     });
   }
 
-  // 1. Sedang Berjalan (in-transit, kendala, atau tiba belum selesai)
+  // 1. Sedang Berjalan (in-transit, kendala, atau tiba belum selesai terkirim)
   List<dynamic> get _inTransitShipments => _shipments.where((s) {
         final st = s['status'] as String? ?? 'tertunda';
+        // Resi yang sudah terkirim / selesai TIDAK BOLEH masuk ke tab sedang jalan!
+        if (st == 'terkirim') return false;
         return st == 'dalam_pengiriman' || st == 'kendala' || s['driver_arrived'] == true;
       }).toList();
 
-  // 2. Antrean Tugas (tertunda belum berangkat)
+  // 2. Antrean Tugas (tertunda belum berangkat dan belum terkirim)
   List<dynamic> get _queuedShipments => _shipments.where((s) {
         final st = s['status'] as String? ?? 'tertunda';
+        if (st == 'terkirim') return false;
         return st == 'tertunda' && s['driver_arrived'] != true;
       }).toList();
 
