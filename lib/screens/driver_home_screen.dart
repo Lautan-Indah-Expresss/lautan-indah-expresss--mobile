@@ -332,216 +332,49 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
       }
     }
 
-    String? multiDropTripCode;
-    String? multiDropNopol;
-    List<Map<String, dynamic>> multiDropItems = [];
+    // Ambil SEMUA grup multi-drop aktif (bisa lebih dari 1 trip card jika admin buat beberapa rombongan)
+    final List<Map<String, dynamic>> multiDropTripList = [];
     for (final entry in activeTripGroups.entries) {
       if (entry.value.length > 1) {
-        multiDropTripCode = entry.key;
-        multiDropItems = entry.value;
-        multiDropNopol = (entry.value.first['nopol'] as String? ?? '-').trim();
-        // Urutkan berdasarkan drop_sequence yang ditentukan admin
-        multiDropItems.sort((a, b) => ((a['drop_sequence'] as int? ?? 1).compareTo(b['drop_sequence'] as int? ?? 1)));
-        break;
+        final tripItems = List<Map<String, dynamic>>.from(entry.value);
+        tripItems.sort((a, b) => ((a['drop_sequence'] as int? ?? 1).compareTo(b['drop_sequence'] as int? ?? 1)));
+
+        final tripCode = entry.key;
+        final nopol = (tripItems.first['nopol'] as String? ?? '-').trim();
+        final vehicle = (tripItems.first['vehicle_name'] as String? ?? '').trim();
+        final allPending = tripItems.every((it) => it['status'] == 'tertunda');
+        final hasAnyActiveIssue = tripItems.any((it) => it['has_active_issue'] == true || it['status'] == 'kendala');
+
+        multiDropTripList.add({
+          'tripCode': tripCode,
+          'items': tripItems,
+          'nopol': nopol,
+          'vehicle': vehicle,
+          'allPending': allPending,
+          'hasAnyActiveIssue': hasAnyActiveIssue,
+        });
       }
     }
-    // Cek status rombongan multi-drop
-    final bool allPending = multiDropItems.isNotEmpty &&
-        multiDropItems.every((it) => it['status'] == 'tertunda');
-    final bool hasAnyActiveIssue = multiDropItems.any(
-        (it) => it['has_active_issue'] == true || it['status'] == 'kendala');
+
+    // Cek apakah driver saat ini sedang dalam perjalanan (driving) di salah satu pengiriman/trip
+    final bool isDriverCurrentlyDriving = items.any(
+      (s) => s['status'] == 'dalam_pengiriman' || s['status'] == 'kendala',
+    );
 
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       children: [
         // ==========================================
-        // MULTI-DROP HUB CONTROL BANNER
-        // Hanya muncul jika sisa muatan aktif > 1
+        // MULTI-DROP HUB CONTROL BANNERS (Mendukung Multi-Trip Cards)
         // ==========================================
-        if (!isHistoryTab && multiDropTripCode != null && multiDropItems.length > 1) ...[
-          Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: hasAnyActiveIssue ? const Color(0xFFFEF2F2) : Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: hasAnyActiveIssue ? const Color(0xFFFCA5A5) : const Color(0xFF0F172A),
-                width: 1.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
-                ),
-              ],
+        if (!isHistoryTab && multiDropTripList.isNotEmpty) ...[
+          for (final tripData in multiDropTripList) ...[
+            _buildMultiDropTripCard(
+              tripData: tripData,
+              isDriverCurrentlyDriving: isDriverCurrentlyDriving,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header Rombongan: Icon, Judul & Badge Sisa Resi
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: hasAnyActiveIssue
-                            ? const Color(0xFFFEE2E2)
-                            : const Color(0xFF0F172A),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        hasAnyActiveIssue ? Icons.warning_amber_rounded : Icons.alt_route,
-                        color: hasAnyActiveIssue ? AppTheme.dangerRed : Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            hasAnyActiveIssue
-                                ? 'KENDALA ARMADA'
-                                : (allPending ? 'TRIP MULTI-DROP' : 'TRIP BERJALAN'),
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w900,
-                              color: hasAnyActiveIssue
-                                  ? AppTheme.dangerRed
-                                  : AppTheme.primaryBlue,
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                          Text(
-                            'Truk $multiDropNopol • $multiDropTripCode',
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w900,
-                              color: AppTheme.darkNavy,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: hasAnyActiveIssue
-                            ? const Color(0xFFFEE2E2)
-                            : const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: hasAnyActiveIssue
-                              ? const Color(0xFFFECACA)
-                              : const Color(0xFFE2E8F0),
-                        ),
-                      ),
-                      child: Text(
-                        '${multiDropItems.length} Resi',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w900,
-                          color: hasAnyActiveIssue
-                              ? AppTheme.dangerRed
-                              : AppTheme.darkNavy,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // Teks Penjelasan Singkat & Padat
-                Text(
-                  allPending
-                      ? 'Ada ${multiDropItems.length} pengiriman searah. Absen mulai jalan cukup 1x untuk rombongan ini.'
-                      : 'Lapor posisi dan kendala jalan otomatis tercatat ke ${multiDropItems.length} resi rombongan.',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF475569),
-                    fontWeight: FontWeight.w500,
-                    height: 1.35,
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Daftar Pil Resi Terang & Kontras
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 6,
-                    children: multiDropItems.map((s) {
-                      final r = s['resi'] ?? '-';
-                      final d = s['destination_city'] ?? '';
-                      final isCurIssue = s['has_active_issue'] == true || s['status'] == 'kendala';
-                      final dropSeq = s['drop_sequence'] as int? ?? 1;
-
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: isCurIssue ? const Color(0xFFFEE2E2) : Colors.white,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: isCurIssue ? const Color(0xFFFCA5A5) : const Color(0xFFCBD5E1),
-                          ),
-                        ),
-                        child: Text(
-                          '#$dropSeq $r ($d)',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: isCurIssue ? AppTheme.dangerRed : AppTheme.darkNavy,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                // ==========================================
-                // TOMBOL AKSI HUB MULTI-DROP
-                // ==========================================
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => DriverMultiDropScreen(
-                          tripCode: multiDropTripCode!,
-                          shipments: multiDropItems,
-                        ),
-                      ),
-                    ).then((_) => _loadData());
-                  },
-                  icon: const Icon(Icons.alt_route, size: 18),
-                  label: Text(
-                    allPending
-                        ? 'MULAI JALAN TRIP MULTI-DROP'
-                        : 'KONTROL PERJALANAN MULTI-DROP',
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0F172A),
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size.fromHeight(46),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-                  ),
-                ),
-              ],
-            ),
-          ),
+            const SizedBox(height: 16),
+          ],
         ],
 
         // Daftar Surat Jalan Individual di bawah
@@ -555,7 +388,10 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
                 await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => DriverDeliveryScreen(shipment: item),
+                    builder: (_) => DriverDeliveryScreen(
+                      shipment: item,
+                      isDriverCurrentlyDriving: isDriverCurrentlyDriving,
+                    ),
                   ),
                 );
                 _loadData();
@@ -564,6 +400,227 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
           );
         }),
       ],
+    );
+  }
+
+  Widget _buildMultiDropTripCard({
+    required Map<String, dynamic> tripData,
+    required bool isDriverCurrentlyDriving,
+  }) {
+    final String tripCode = tripData['tripCode'];
+    final List<Map<String, dynamic>> tripItems = tripData['items'];
+    final String nopol = tripData['nopol'];
+    final String vehicle = tripData['vehicle'];
+    final bool allPending = tripData['allPending'];
+    final bool hasAnyActiveIssue = tripData['hasAnyActiveIssue'];
+
+    // Jika trip ini belum berangkat (allPending), tapi supir SUDAH dalam perjalanan di trip/resi lain,
+    // maka trip ini berstatus menunggu antrean (terkunci)
+    final bool isBlockedByOtherActiveTrip = allPending && isDriverCurrentlyDriving;
+
+    final String titleArmada = vehicle.isNotEmpty ? '$vehicle • $nopol' : 'Truk $nopol';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: hasAnyActiveIssue ? const Color(0xFFFEF2F2) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: hasAnyActiveIssue
+              ? const Color(0xFFFCA5A5)
+              : (isBlockedByOtherActiveTrip ? const Color(0xFFCBD5E1) : const Color(0xFF0F172A)),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Rombongan: Icon, Judul & Badge Sisa Resi
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: hasAnyActiveIssue
+                      ? const Color(0xFFFEE2E2)
+                      : (isBlockedByOtherActiveTrip ? const Color(0xFFF1F5F9) : const Color(0xFF0F172A)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  hasAnyActiveIssue
+                      ? Icons.warning_amber_rounded
+                      : (isBlockedByOtherActiveTrip ? Icons.lock_outline : Icons.alt_route),
+                  color: hasAnyActiveIssue
+                      ? AppTheme.dangerRed
+                      : (isBlockedByOtherActiveTrip ? AppTheme.textMuted : Colors.white),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      hasAnyActiveIssue
+                          ? 'KENDALA ARMADA'
+                          : (isBlockedByOtherActiveTrip
+                              ? 'TRIP MENUNGGU (ANTREAN)'
+                              : (allPending ? 'TRIP MULTI-DROP' : 'TRIP BERJALAN')),
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        color: hasAnyActiveIssue
+                            ? AppTheme.dangerRed
+                            : (isBlockedByOtherActiveTrip ? AppTheme.textMuted : AppTheme.primaryBlue),
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    Text(
+                      '$titleArmada • $tripCode',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        color: AppTheme.darkNavy,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: hasAnyActiveIssue
+                      ? const Color(0xFFFEE2E2)
+                      : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: hasAnyActiveIssue
+                        ? const Color(0xFFFECACA)
+                        : const Color(0xFFE2E8F0),
+                  ),
+                ),
+                child: Text(
+                  '${tripItems.length} Resi',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                    color: hasAnyActiveIssue
+                        ? AppTheme.dangerRed
+                        : AppTheme.darkNavy,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Teks Penjelasan Singkat & Padat
+          Text(
+            isBlockedByOtherActiveTrip
+                ? 'Selesaikan trip aktif Anda terlebih dahulu sebelum memulai jalan trip ini.'
+                : (allPending
+                    ? 'Ada ${tripItems.length} pengiriman searah. Absen mulai jalan cukup 1x untuk rombongan ini.'
+                    : 'Lapor posisi dan kendala jalan otomatis tercatat ke ${tripItems.length} resi rombongan.'),
+            style: TextStyle(
+              fontSize: 12,
+              color: isBlockedByOtherActiveTrip ? const Color(0xFFB45309) : const Color(0xFF475569),
+              fontWeight: isBlockedByOtherActiveTrip ? FontWeight.w700 : FontWeight.w500,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Daftar Pil Resi Terang & Kontras
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: tripItems.map((s) {
+                final r = s['resi'] ?? '-';
+                final d = s['destination_city'] ?? '';
+                final isCurIssue = s['has_active_issue'] == true || s['status'] == 'kendala';
+                final dropSeq = s['drop_sequence'] as int? ?? 1;
+
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isCurIssue ? const Color(0xFFFEE2E2) : Colors.white,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: isCurIssue ? const Color(0xFFFCA5A5) : const Color(0xFFCBD5E1),
+                    ),
+                  ),
+                  child: Text(
+                    '#$dropSeq $r ($d)',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: isCurIssue ? AppTheme.dangerRed : AppTheme.darkNavy,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // ==========================================
+          // TOMBOL AKSI HUB MULTI-DROP
+          // ==========================================
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => DriverMultiDropScreen(
+                    tripCode: tripCode,
+                    shipments: tripItems,
+                    isBlockedByOtherTrip: isBlockedByOtherActiveTrip,
+                  ),
+                ),
+              ).then((_) => _loadData());
+            },
+            icon: Icon(
+              isBlockedByOtherActiveTrip ? Icons.visibility : Icons.alt_route,
+              size: 18,
+            ),
+            label: Text(
+              isBlockedByOtherActiveTrip
+                  ? 'LIHAT RINCIAN TRIP (TERKUNCI)'
+                  : (allPending
+                      ? 'MULAI JALAN TRIP MULTI-DROP'
+                      : 'KONTROL PERJALANAN MULTI-DROP'),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isBlockedByOtherActiveTrip
+                  ? const Color(0xFF64748B)
+                  : const Color(0xFF0F172A),
+              foregroundColor: Colors.white,
+              minimumSize: const Size.fromHeight(46),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

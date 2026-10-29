@@ -12,11 +12,13 @@ import 'driver_delivery_screen.dart';
 class DriverMultiDropScreen extends StatefulWidget {
   final String tripCode;
   final List<Map<String, dynamic>> shipments;
+  final bool isBlockedByOtherTrip;
 
   const DriverMultiDropScreen({
     super.key,
     required this.tripCode,
     required this.shipments,
+    this.isBlockedByOtherTrip = false,
   });
 
   @override
@@ -818,13 +820,48 @@ class _DriverMultiDropScreenState extends State<DriverMultiDropScreen> {
                     ),
                     const SizedBox(height: 12),
 
+                    // Banner Info jika Terkunci oleh Trip Aktif Lain
+                    if (widget.isBlockedByOtherTrip && !hasDeparted) ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFFBEB),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFFDE68A)),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.info_outline, color: Color(0xFFB45309), size: 20),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Armada sedang aktif di perjalanan tugas lain. Selesaikan atau tuntaskan trip berjalan sebelum memulai absen trip ini.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF92400E),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
                     // 1. Absen Berangkat Multi-Drop
                     ElevatedButton.icon(
-                      onPressed: !hasDeparted ? _handleDepartureSelfie : null,
-                      icon: const Icon(Icons.camera_alt),
-                      label: const Text('1. FOTO ABSEN & MULAI JALAN'),
+                      onPressed: (!hasDeparted && !widget.isBlockedByOtherTrip) ? _handleDepartureSelfie : null,
+                      icon: Icon(widget.isBlockedByOtherTrip ? Icons.lock : Icons.camera_alt),
+                      label: Text(
+                        widget.isBlockedByOtherTrip
+                            ? '1. TERKUNCI (MENUNGGU TRIP LAIN)'
+                            : '1. FOTO ABSEN & MULAI JALAN',
+                      ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryBlue,
+                        backgroundColor: widget.isBlockedByOtherTrip
+                            ? const Color(0xFF64748B)
+                            : AppTheme.primaryBlue,
                         foregroundColor: Colors.white,
                         minimumSize: const Size.fromHeight(54),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

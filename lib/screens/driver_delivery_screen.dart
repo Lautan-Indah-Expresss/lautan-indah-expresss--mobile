@@ -11,8 +11,13 @@ import 'driver_multi_drop_screen.dart';
 
 class DriverDeliveryScreen extends StatefulWidget {
   final Map<String, dynamic> shipment;
+  final bool isDriverCurrentlyDriving;
 
-  const DriverDeliveryScreen({super.key, required this.shipment});
+  const DriverDeliveryScreen({
+    super.key,
+    required this.shipment,
+    this.isDriverCurrentlyDriving = false,
+  });
 
   @override
   State<DriverDeliveryScreen> createState() => _DriverDeliveryScreenState();
@@ -849,31 +854,73 @@ class _DriverDeliveryScreenState extends State<DriverDeliveryScreen> {
                   const SizedBox(height: 28),
                 ] else ...[
                   // Single-Drop Reguler (4 Tombol Lengkap)
-                  const Text(
-                    'Tombol Aksi Lapangan (Wajib Foto Langsung):',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textMuted,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
+                  // Cek apakah pengiriman tunggal ini terkunci karena supir sedang aktif di perjalanan lain
+                  () {
+                    final bool isBlockedByOtherTransit = !hasDeparted && widget.isDriverCurrentlyDriving;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (isBlockedByOtherTransit) ...[
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFFBEB),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFFDE68A)),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.info_outline, color: Color(0xFFB45309), size: 20),
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'Anda sedang aktif dalam perjalanan tugas lain. Selesaikan tugas berjalan sebelum memulai tugas pengiriman ini.',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF92400E),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        const Text(
+                          'Tombol Aksi Lapangan (Wajib Foto Langsung):',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textMuted,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
 
-                  // 1. Absen Berangkat
-                  ElevatedButton.icon(
-                    // 1. Absen hanya aktif jika BELUM absen berangkat (tertunda)
-                    onPressed: !hasDeparted ? _handleDepartureSelfie : null,
-                    icon: const Icon(Icons.camera_alt),
-                    label: const Text('1. FOTO ABSEN & MULAI JALAN'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryBlue,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size.fromHeight(54),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
-                    ),
-                  ),
+                        // 1. Absen Berangkat
+                        ElevatedButton.icon(
+                          // 1. Absen hanya aktif jika BELUM absen berangkat (tertunda) dan TIDAK sedang blocked
+                          onPressed: (!hasDeparted && !isBlockedByOtherTransit) ? _handleDepartureSelfie : null,
+                          icon: Icon(isBlockedByOtherTransit ? Icons.lock : Icons.camera_alt),
+                          label: Text(
+                            isBlockedByOtherTransit
+                                ? '1. TERKUNCI (MENUNGGU TUGAS AKTIF)'
+                                : '1. FOTO ABSEN & MULAI JALAN',
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isBlockedByOtherTransit
+                                ? const Color(0xFF64748B)
+                                : AppTheme.primaryBlue,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size.fromHeight(54),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+                          ),
+                        ),
+                      ],
+                    );
+                  }(),
                   const SizedBox(height: 12),
 
                   // 2. Lapor Posisi Sekarang
