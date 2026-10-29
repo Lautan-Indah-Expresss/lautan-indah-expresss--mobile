@@ -241,7 +241,7 @@ class _DriverLoginScreenState extends State<DriverLoginScreen> {
                           ),
                           const SizedBox(width: 5),
                           Text(
-                            'v1.0.0 (${AppConfig.env.toUpperCase()})',
+                            'v1.3.10 (${AppConfig.env.toUpperCase()})',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
