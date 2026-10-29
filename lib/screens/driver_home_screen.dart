@@ -7,6 +7,12 @@ import 'driver_delivery_screen.dart';
 import 'driver_multi_drop_screen.dart';
 import 'driver_profile_tab.dart';
 
+enum _TabMode {
+  inTransit,
+  queued,
+  history,
+}
+
 class DriverHomeScreen extends StatefulWidget {
   const DriverHomeScreen({super.key});
 
@@ -47,12 +53,26 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
     });
   }
 
-  // Filter pengiriman: Aktif (belum selesai) vs Riwayat (selesai)
-  List<dynamic> get _activeShipments =>
-      _shipments.where((s) => s['status'] != 'terkirim').toList();
+  // 1. Sedang Berjalan (in-transit, kendala, atau tiba belum selesai)
+  List<dynamic> get _inTransitShipments => _shipments.where((s) {
+        final st = s['status'] as String? ?? 'tertunda';
+        return st == 'dalam_pengiriman' || st == 'kendala' || s['driver_arrived'] == true;
+      }).toList();
 
+  // 2. Antrean Tugas (tertunda belum berangkat)
+  List<dynamic> get _queuedShipments => _shipments.where((s) {
+        final st = s['status'] as String? ?? 'tertunda';
+        return st == 'tertunda' && s['driver_arrived'] != true;
+      }).toList();
+
+  // 3. Riwayat Selesai
   List<dynamic> get _historyShipments =>
       _shipments.where((s) => s['status'] == 'terkirim').toList();
+
+  // Helper cek apakah supir sedang aktif menyetir di jalan
+  bool get _isDriverCurrentlyDriving => _shipments.any(
+        (s) => s['status'] == 'dalam_pengiriman' || s['status'] == 'kendala',
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -66,10 +86,12 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
           children: [
             Text(
               _currentIndex == 0
-                  ? 'Tugas Pengiriman Aktif'
+                  ? 'Sedang Dikerjakan (Aktif)'
                   : _currentIndex == 1
-                      ? 'Riwayat Pengiriman'
-                      : 'Profil Pengemudi',
+                      ? 'Antrean Tugas Pengiriman'
+                      : _currentIndex == 2
+                          ? 'Riwayat Pengiriman'
+                          : 'Profil Pengemudi',
               style: const TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w900,
@@ -94,7 +116,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
           ],
         ),
         actions: [
-          if (_currentIndex != 2)
+          if (_currentIndex != 3)
             IconButton(
               icon: const Icon(Icons.refresh, color: Colors.white),
               tooltip: 'Perbarui Data',
@@ -103,15 +125,23 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
         ],
       ),
 
-      // Body disesuaikan dengan BottomNavigationBar
-      body: _currentIndex == 2
+      // Body sesuai 4 tab (0: Sedang Jalan, 1: Antrean, 2: Riwayat, 3: Profil)
+      body: _currentIndex == 3
           ? const DriverProfileTab()
           : RefreshIndicator(
               onRefresh: _loadData,
               color: AppTheme.primaryBlue,
               child: _buildShipmentList(
-                _currentIndex == 0 ? _activeShipments : _historyShipments,
-                isHistoryTab: _currentIndex == 1,
+                _currentIndex == 0
+                    ? _inTransitShipments
+                    : _currentIndex == 1
+                        ? _queuedShipments
+                        : _historyShipments,
+                tabMode: _currentIndex == 0
+                    ? _TabMode.inTransit
+                    : _currentIndex == 1
+                        ? _TabMode.queued
+                        : _TabMode.history,
               ),
             ),
 
@@ -129,29 +159,37 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildNavItem(
                   index: 0,
-                  icon: Icons.local_shipping_outlined,
-                  activeIcon: Icons.local_shipping,
-                  label: 'Tugas Aktif',
-                  badgeCount: _activeShipments.length,
+                  icon: Icons.directions_run_outlined,
+                  activeIcon: Icons.directions_run,
+                  label: 'Sedang Jalan',
+                  badgeCount: _inTransitShipments.length,
+                  badgeColor: _isDriverCurrentlyDriving ? AppTheme.successGreen : null,
                 ),
                 _buildNavItem(
                   index: 1,
+                  icon: Icons.assignment_outlined,
+                  activeIcon: Icons.assignment,
+                  label: 'Antrean',
+                  badgeCount: _queuedShipments.length,
+                ),
+                _buildNavItem(
+                  index: 2,
                   icon: Icons.history_toggle_off_rounded,
                   activeIcon: Icons.history_rounded,
                   label: 'Riwayat',
                   badgeCount: _historyShipments.length,
                 ),
                 _buildNavItem(
-                  index: 2,
+                  index: 3,
                   icon: Icons.person_outline,
                   activeIcon: Icons.person,
-                  label: 'Profil Saya',
+                  label: 'Profil',
                 ),
               ],
             ),
@@ -167,22 +205,23 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
     required IconData activeIcon,
     required String label,
     int? badgeCount,
+    Color? badgeColor,
   }) {
     final isSelected = _currentIndex == index;
     return InkWell(
       onTap: () => setState(() => _currentIndex = index),
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(14),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: EdgeInsets.symmetric(
-          horizontal: isSelected ? 16 : 12,
-          vertical: 8,
+          horizontal: isSelected ? 12 : 8,
+          vertical: 6,
         ),
         decoration: BoxDecoration(
           color: isSelected
               ? AppTheme.primaryBlue.withValues(alpha: 0.1)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -193,7 +232,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
                 Icon(
                   isSelected ? activeIcon : icon,
                   color: isSelected ? AppTheme.primaryBlue : AppTheme.textMuted,
-                  size: 22,
+                  size: 20,
                 ),
                 if (badgeCount != null && badgeCount > 0)
                   Positioned(
@@ -202,7 +241,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                       decoration: BoxDecoration(
-                        color: isSelected ? AppTheme.primaryBlue : AppTheme.textMuted,
+                        color: badgeColor ?? (isSelected ? AppTheme.primaryBlue : AppTheme.textMuted),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
@@ -218,11 +257,11 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
               ],
             ),
             if (isSelected) ...[
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Text(
                 label,
                 style: const TextStyle(
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: FontWeight.w800,
                   color: AppTheme.primaryBlue,
                 ),
@@ -234,7 +273,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
     );
   }
 
-  Widget _buildShipmentList(List<dynamic> items, {required bool isHistoryTab}) {
+  Widget _buildShipmentList(List<dynamic> rawItems, {required _TabMode tabMode}) {
     if (_isLoading) {
       return const Center(
         child: Column(
@@ -280,15 +319,20 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
       );
     }
 
-    if (items.isEmpty) {
+    final isHistoryTab = tabMode == _TabMode.history;
+    final isInTransitTab = tabMode == _TabMode.inTransit;
+
+    if (rawItems.isEmpty) {
       return ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          const SizedBox(height: 80),
+          const SizedBox(height: 70),
           Icon(
             isHistoryTab
                 ? Icons.receipt_long_outlined
-                : Icons.assignment_turned_in_outlined,
+                : (isInTransitTab
+                    ? Icons.directions_boat_outlined
+                    : Icons.inbox_outlined),
             size: 68,
             color: AppTheme.textMuted,
           ),
@@ -296,7 +340,9 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
           Text(
             isHistoryTab
                 ? 'Belum Ada Riwayat Pengiriman'
-                : 'Belum Ada Tugas Pengiriman Aktif',
+                : (isInTransitTab
+                    ? 'Tidak Ada Perjalanan Aktif'
+                    : 'Tidak Ada Antrean Tugas'),
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 17,
@@ -308,7 +354,9 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
           Text(
             isHistoryTab
                 ? 'Semua pengiriman yang sudah selesai terkirim akan muncul di riwayat ini.'
-                : 'Saat ini semua penugasan armada sudah selesai atau belum ada penugasan baru.\nTarik layar ke bawah untuk cek tugas baru.',
+                : (isInTransitTab
+                    ? 'Saat ini truk sedang tidak dalam perjalanan.\nBuka tab "Antrean" untuk memilih tugas dan mulai jalan.'
+                    : 'Semua tugas pengiriman saat ini sudah dimulai atau belum ada tugas baru dari admin.'),
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 13,
@@ -316,23 +364,68 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
               height: 1.45,
             ),
           ),
+          if (isInTransitTab && _queuedShipments.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Center(
+              child: ElevatedButton.icon(
+                onPressed: () => setState(() => _currentIndex = 1),
+                icon: const Icon(Icons.assignment_outlined, size: 18),
+                label: Text('Lihat ${_queuedShipments.length} Antrean Tugas'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryBlue,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ],
         ],
       );
     }
 
-    // Kelompokkan muatan aktif HANYA berdasarkan trip_code resmi dari Admin
-    // HANYA muatan yang MASIH DI JALAN (belum 'terkirim' DAN belum 'driver_arrived')
+    // Buat copy items dan urutkan secara cerdas:
+    // 1. Resi kendala / aktif paling atas
+    // 2. Jika sama-sama aktif, urutkan berdasarkan drop_sequence (Drop 1, 2, 3)
+    final List<Map<String, dynamic>> items = rawItems
+        .map((it) => Map<String, dynamic>.from(it as Map<String, dynamic>))
+        .toList();
+
+    items.sort((a, b) {
+      final stA = a['status'] as String? ?? 'tertunda';
+      final stB = b['status'] as String? ?? 'tertunda';
+
+      int rank(String st, Map<String, dynamic> s) {
+        if (s['has_active_issue'] == true || st == 'kendala') return 0; // Paling genting
+        if (st == 'dalam_pengiriman') return 1; // Sedang jalan
+        if (s['driver_arrived'] == true) return 2; // Sudah tiba
+        if (st == 'tertunda') return 3; // Menunggu
+        return 4; // Terkirim
+      }
+
+      final rankA = rank(stA, a);
+      final rankB = rank(stB, b);
+      if (rankA != rankB) return rankA.compareTo(rankB);
+
+      // Jika sama-sama trip rombongan, urutkan drop_sequence 1, 2, 3
+      final dropA = a['drop_sequence'] as int? ?? 1;
+      final dropB = b['drop_sequence'] as int? ?? 1;
+      if (dropA != dropB) return dropA.compareTo(dropB);
+
+      return (a['resi'] as String? ?? '').compareTo(b['resi'] as String? ?? '');
+    });
+
+    // Kelompokkan muatan aktif berdasarkan trip_code resmi dari Admin
     final Map<String, List<Map<String, dynamic>>> activeTripGroups = {};
     for (final it in items) {
       final status = it['status'] as String? ?? 'tertunda';
       final isArrived = it['driver_arrived'] == true;
       final tripCode = (it['trip_code'] as String? ?? '').trim();
       if (tripCode.isNotEmpty && status != 'terkirim' && !isArrived) {
-        activeTripGroups.putIfAbsent(tripCode, () => []).add(it as Map<String, dynamic>);
+        activeTripGroups.putIfAbsent(tripCode, () => []).add(it);
       }
     }
 
-    // Ambil SEMUA grup multi-drop aktif (bisa lebih dari 1 trip card jika admin buat beberapa rombongan)
+    // Ambil SEMUA grup multi-drop aktif
     final List<Map<String, dynamic>> multiDropTripList = [];
     for (final entry in activeTripGroups.entries) {
       if (entry.value.length > 1) {
@@ -344,6 +437,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
         final vehicle = (tripItems.first['vehicle_name'] as String? ?? '').trim();
         final allPending = tripItems.every((it) => it['status'] == 'tertunda');
         final hasAnyActiveIssue = tripItems.any((it) => it['has_active_issue'] == true || it['status'] == 'kendala');
+        final isTripDeparted = !allPending;
 
         multiDropTripList.add({
           'tripCode': tripCode,
@@ -352,20 +446,54 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
           'vehicle': vehicle,
           'allPending': allPending,
           'hasAnyActiveIssue': hasAnyActiveIssue,
+          'isTripDeparted': isTripDeparted,
         });
       }
     }
 
+    // Urutkan multiDropTripList: Trip yang sedang jalan / kendala di atas sendiri
+    multiDropTripList.sort((a, b) {
+      final aActive = (a['isTripDeparted'] == true || a['hasAnyActiveIssue'] == true) ? 0 : 1;
+      final bActive = (b['isTripDeparted'] == true || b['hasAnyActiveIssue'] == true) ? 0 : 1;
+      return aActive.compareTo(bActive);
+    });
+
     // Cek apakah driver saat ini sedang dalam perjalanan (driving) di salah satu pengiriman/trip
-    final bool isDriverCurrentlyDriving = items.any(
+    final bool isDriverCurrentlyDriving = _shipments.any(
       (s) => s['status'] == 'dalam_pengiriman' || s['status'] == 'kendala',
     );
+
+    // Ambil info tugas aktif untuk Banner Opsi A (Cockpit Banner)
+    Map<String, dynamic>? activeDrivingItem;
+    if (isDriverCurrentlyDriving) {
+      try {
+        activeDrivingItem = items.firstWhere(
+          (s) => s['status'] == 'dalam_pengiriman' || s['status'] == 'kendala',
+        );
+      } catch (_) {
+        try {
+          activeDrivingItem = _shipments.firstWhere(
+            (s) => s['status'] == 'dalam_pengiriman' || s['status'] == 'kendala',
+          );
+        } catch (_) {}
+      }
+    }
 
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       children: [
         // ==========================================
+        // OPSI A: COCKPIT BANNER (STICKY AKTIF DI JALAN)
+        // Muncul menonjol di atas sendiri saat supir sedang jalan
+        // ==========================================
+        if (!isHistoryTab && activeDrivingItem != null) ...[
+          _buildActiveCockpitBanner(activeDrivingItem),
+          const SizedBox(height: 16),
+        ],
+
+        // ==========================================
         // MULTI-DROP HUB CONTROL BANNERS (Mendukung Multi-Trip Cards)
+        // Yang sedang jalan / kendala otomatis di urutan teratas
         // ==========================================
         if (!isHistoryTab && multiDropTripList.isNotEmpty) ...[
           for (final tripData in multiDropTripList) ...[
@@ -377,9 +505,31 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
           ],
         ],
 
-        // Daftar Surat Jalan Individual di bawah
-        ...items.map((itemRaw) {
-          final item = itemRaw as Map<String, dynamic>;
+        // Subheader Daftar Surat Jalan
+        if (!isHistoryTab && items.isNotEmpty) ...[
+          Row(
+            children: [
+              Text(
+                isInTransitTab ? 'Daftar Resi dalam Perjalanan:' : 'Daftar Surat Jalan:',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.textMuted,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '${items.length} Resi',
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textMuted),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+        ],
+
+        // Daftar Surat Jalan Individual di bawah (Terurut Cerdas)
+        ...items.map((item) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: ShipmentCard(
@@ -401,6 +551,145 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
         }),
       ],
     );
+  }
+
+  // Widget Banner Cockpit (Opsi A)
+  Widget _buildActiveCockpitBanner(Map<String, dynamic> activeItem) {
+    final bool hasIssue = activeItem['status'] == 'kendala' || activeItem['has_active_issue'] == true;
+    final String tripCode = (activeItem['trip_code'] as String? ?? '').trim();
+    final bool isMultiDrop = tripCode.isNotEmpty;
+    final String resi = activeItem['resi'] ?? '-';
+    final String dest = activeItem['destination_city'] ?? 'Tujuan';
+    final String receiver = activeItem['receiver_company'] ?? '-';
+    final String nopol = (activeItem['nopol'] as String? ?? '-').trim();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: hasIssue ? const Color(0xFF7F1D1D) : const Color(0xFF0F172A),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: hasIssue
+                ? const Color(0xFFEF4444).withValues(alpha: 0.35)
+                : const Color(0xFF2563EB).withValues(alpha: 0.3),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: hasIssue ? AppTheme.dangerRed : AppTheme.successGreen,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      hasIssue ? 'KENDALA JALAN' : 'SEDANG DI PERJALANAN',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: 0.6,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              Text(
+                'Truk $nopol',
+                style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            isMultiDrop ? 'Perjalanan Multi-Drop $tripCode' : 'Surat Jalan $resi',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            isMultiDrop
+                ? 'Tujuan Drop: $dest ($receiver)'
+                : 'Menuju $dest • $receiver',
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF94A3B8),
+              fontWeight: FontWeight.w500,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 14),
+          ElevatedButton.icon(
+            onPressed: () async {
+              if (isMultiDrop) {
+                final all = await _apiService.getShipments();
+                final tripShipments = all
+                    .where((s) => (s['trip_code'] as String? ?? '').trim() == tripCode)
+                    .map((s) => s as Map<String, dynamic>)
+                    .toList();
+                if (!mounted) return;
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => DriverMultiDropScreen(
+                      tripCode: tripCode,
+                      shipments: tripShipments.isNotEmpty ? tripShipments : [activeItem],
+                    ),
+                  ),
+                );
+              } else {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => DriverDeliveryScreen(
+                      shipment: activeItem,
+                      isDriverCurrentlyDriving: true,
+                    ),
+                  ),
+                );
+              }
+              _loadData();
+            },
+            icon: const Icon(Icons.arrow_circle_right_outlined, size: 18),
+            label: Text(
+              isMultiDrop ? 'BUKA KONTROL MULTI-DROP' : 'BUKA DETAIL PENGIRIMAN',
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: hasIssue ? Colors.white : AppTheme.primaryBlue,
+              foregroundColor: hasIssue ? AppTheme.dangerRed : Colors.white,
+              minimumSize: const Size.fromHeight(44),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
   }
 
   Widget _buildMultiDropTripCard({
