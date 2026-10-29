@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
 import '../core/api_constants.dart';
+import '../core/config/app_config.dart';
 import '../services/api_service.dart';
 import 'driver_home_screen.dart';
 
@@ -209,7 +210,53 @@ class _DriverLoginScreenState extends State<DriverLoginScreen> {
                     color: AppTheme.textMuted,
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 8),
+                // Badge Versi & Environment (Bisa diklik untuk cek Server URL)
+                Center(
+                  child: InkWell(
+                    onTap: _showServerSettingsDialog,
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppConfig.isProd
+                            ? const Color(0xFFF1F5F9)
+                            : (AppConfig.isDev ? const Color(0xFFFEF3C7) : const Color(0xFFEFF6FF)),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: AppConfig.isProd
+                              ? const Color(0xFFCBD5E1)
+                              : (AppConfig.isDev ? const Color(0xFFFDE68A) : const Color(0xFFBFDBFE)),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            size: 13,
+                            color: AppConfig.isProd
+                                ? AppTheme.textMuted
+                                : (AppConfig.isDev ? const Color(0xFFB45309) : const Color(0xFF1E40AF)),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            'v1.0.0 (${AppConfig.env.toUpperCase()})',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: AppConfig.isProd
+                                  ? const Color(0xFF475569)
+                                  : (AppConfig.isDev ? const Color(0xFF92400E) : const Color(0xFF1E3A8A)),
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
 
                 // Error Message Box
                 if (_errorMessage != null) ...[
