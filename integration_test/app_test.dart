@@ -55,7 +55,7 @@ void main() {
 
     testWidgets('2. Delivery action buttons state validation (Absen, Posisi, Kendala, Selesai/Tiba)', (tester) async {
       final mockShipment = {
-        'id': 'SHIP-001',
+        'id': 101,
         'resi': 'LIE-JKT-SBY-001',
         'status': 'tertunda',
         'origin_city': 'Jakarta',
@@ -82,28 +82,33 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Verifikasi tampilan detail pengiriman
+      // Verifikasi detail surat jalan
       expect(find.text('LIE-JKT-SBY-001'), findsOneWidget);
       expect(find.text('PT Sejahtera Abadi'), findsOneWidget);
 
-      // Verifikasi 4 tombol aksi utama terpasang
+      // Verifikasi tombol absen (tampak di viewport awal)
       final btnAbsen = find.text('1. FOTO ABSEN & MULAI JALAN');
+      expect(btnAbsen, findsOneWidget);
+
+      final btnAbsenWidget = tester.widget<ElevatedButton>(find.ancestor(of: btnAbsen, matching: find.byType(ElevatedButton)));
+      expect(btnAbsenWidget.enabled, isTrue, reason: 'Tombol absen harus aktif sebelum berangkat');
+
+      // Scroll ke bawah untuk melihat tombol posisi, kendala, dan sampai
+      await tester.drag(find.byType(ListView), const Offset(0, -500));
+      await tester.pumpAndSettle();
+
       final btnPosisi = find.text('2. LIHAT PETA & LAPOR POSISI');
       final btnKendala = find.text('3. LAPOR KENDALA DI JALAN');
       final btnSampai = find.text('4. SUDAH SAMPAI DI GUDANG TUJUAN');
 
-      expect(btnAbsen, findsOneWidget);
       expect(btnPosisi, findsOneWidget);
       expect(btnKendala, findsOneWidget);
       expect(btnSampai, findsOneWidget);
 
-      // State check: Pada status 'tertunda', tombol 1 aktif, sedangkan tombol 2, 3, 4 disable
-      final btnAbsenWidget = tester.widget<ElevatedButton>(find.ancestor(of: btnAbsen, matching: find.byType(ElevatedButton)));
       final btnPosisiWidget = tester.widget<ElevatedButton>(find.ancestor(of: btnPosisi, matching: find.byType(ElevatedButton)));
       final btnKendalaWidget = tester.widget<ElevatedButton>(find.ancestor(of: btnKendala, matching: find.byType(ElevatedButton)));
       final btnSampaiWidget = tester.widget<ElevatedButton>(find.ancestor(of: btnSampai, matching: find.byType(ElevatedButton)));
 
-      expect(btnAbsenWidget.enabled, isTrue, reason: 'Tombol absen harus aktif sebelum berangkat');
       expect(btnPosisiWidget.enabled, isFalse, reason: 'Tombol posisi harus disable sebelum absen');
       expect(btnKendalaWidget.enabled, isFalse, reason: 'Tombol kendala harus disable sebelum absen');
       expect(btnSampaiWidget.enabled, isFalse, reason: 'Tombol tiba harus disable sebelum absen');
@@ -154,7 +159,7 @@ void main() {
 
     testWidgets('4. Single-drop task lock validation when driver is currently driving another trip', (tester) async {
       final mockShipment = {
-        'id': 'SHIP-002',
+        'id': 102,
         'resi': 'LIE-BDG-SMG-002',
         'status': 'tertunda',
         'origin_city': 'Bandung',
@@ -193,7 +198,7 @@ void main() {
 
     testWidgets('5. Active delivery state enables Posisi, Kendala, and Arrival buttons', (tester) async {
       final mockShipment = {
-        'id': 'SHIP-003',
+        'id': 103,
         'resi': 'LIE-SUB-MLG-003',
         'status': 'dalam_pengiriman',
         'origin_city': 'Surabaya',
@@ -212,11 +217,19 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      // Scroll ke bawah agar tombol aksi 2, 3, 4 masuk ke viewport
+      await tester.drag(find.byType(ListView), const Offset(0, -500));
+      await tester.pumpAndSettle();
+
       // Pada status 'dalam_pengiriman':
       // Tombol 2 (Posisi), 3 (Kendala), 4 (Sampai) harus enabled
       final btnPosisi = find.text('2. LIHAT PETA & LAPOR POSISI');
       final btnKendala = find.text('3. LAPOR KENDALA DI JALAN');
       final btnSampai = find.text('4. SUDAH SAMPAI DI GUDANG TUJUAN');
+
+      expect(btnPosisi, findsOneWidget);
+      expect(btnKendala, findsOneWidget);
+      expect(btnSampai, findsOneWidget);
 
       final btnPosisiWidget = tester.widget<ElevatedButton>(find.ancestor(of: btnPosisi, matching: find.byType(ElevatedButton)));
       final btnKendalaWidget = tester.widget<ElevatedButton>(find.ancestor(of: btnKendala, matching: find.byType(ElevatedButton)));
