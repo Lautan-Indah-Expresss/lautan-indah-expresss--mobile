@@ -213,18 +213,19 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
     final isSelected = _currentIndex == index;
     return InkWell(
       onTap: () => setState(() => _currentIndex = index),
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(16),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
         padding: EdgeInsets.symmetric(
-          horizontal: isSelected ? 12 : 8,
-          vertical: 6,
+          horizontal: isSelected ? 14 : 10,
+          vertical: 8,
         ),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppTheme.primaryBlue.withValues(alpha: 0.1)
+              ? AppTheme.primaryBlue.withValues(alpha: 0.12)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -232,10 +233,15 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
             Stack(
               clipBehavior: Clip.none,
               children: [
-                Icon(
-                  isSelected ? activeIcon : icon,
-                  color: isSelected ? AppTheme.primaryBlue : AppTheme.textMuted,
-                  size: 20,
+                AnimatedScale(
+                  scale: isSelected ? 1.18 : 1.0,
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeOutBack,
+                  child: Icon(
+                    isSelected ? activeIcon : icon,
+                    color: isSelected ? AppTheme.primaryBlue : AppTheme.textMuted,
+                    size: 20,
+                  ),
                 ),
                 if (badgeCount != null && badgeCount > 0)
                   Positioned(
@@ -259,17 +265,27 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
                   ),
               ],
             ),
-            if (isSelected) ...[
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.primaryBlue,
-                ),
-              ),
-            ],
+            AnimatedSize(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeInOutCubic,
+              child: isSelected
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(width: 7),
+                        Text(
+                          label,
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w900,
+                            color: AppTheme.primaryBlue,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ],
+                    )
+                  : const SizedBox.shrink(),
+            ),
           ],
         ),
       ),
