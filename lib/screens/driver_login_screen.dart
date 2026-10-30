@@ -1,4 +1,3 @@
-import '../widgets/typography_logo.dart';
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
 import '../services/api_service.dart';
