@@ -1,3 +1,4 @@
+import '../widgets/typography_logo.dart';
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
 import '../core/api_constants.dart';
@@ -167,47 +168,14 @@ class _DriverLoginScreenState extends State<DriverLoginScreen> {
                   ],
                 ),
 
-                // Logo LIE Cargo
-                Center(
-                  child: Container(
-                    width: 76,
-                    height: 76,
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryBlue,
-                      borderRadius: BorderRadius.circular(22),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.primaryBlue.withOpacity(0.35),
-                          blurRadius: 18,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.local_shipping,
-                      size: 44,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                const Text(
-                  'LIE Driver',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    color: AppTheme.darkNavy,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Aplikasi Tugas Pengemudi Kargo B2B',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppTheme.textMuted,
+                // Logo LIE Driver (Pure Typography)
+                const Center(
+                  child: TypographyLogo(
+                    variant: LogoVariant.driver,
+                    themeMode: LogoThemeMode.light,
+                    style: LogoStyle.velocity,
+                    size: LogoSize.large,
+                    customSubtitle: 'APLIKASI TUGAS PENGEMUDI B2B',
                   ),
                 ),
                 const SizedBox(height: 8),

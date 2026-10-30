@@ -1,3 +1,4 @@
+import '../widgets/typography_logo.dart';
 import 'package:flutter/material.dart';
 import 'home_shell.dart';
 
@@ -31,44 +32,14 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Logo & Header
-                Center(
-                  child: Container(
-                    width: 76,
-                    height: 76,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E293B),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFF38BDF8), width: 2),
-                      boxShadow: [
-                        BoxShadow(color: const Color(0xFF38BDF8).withOpacity(0.25), blurRadius: 16, offset: const Offset(0, 4)),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.local_shipping_rounded,
-                      size: 40,
-                      color: Color(0xFF38BDF8),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Driver Logistics App',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'PT Logistik Mandiri Sejahtera',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF94A3B8),
+                // Logo & Header (Pure Typography)
+                const Center(
+                  child: TypographyLogo(
+                    variant: LogoVariant.driver,
+                    themeMode: LogoThemeMode.dark,
+                    style: LogoStyle.velocity,
+                    size: LogoSize.large,
+                    customSubtitle: 'PT LAUTAN INDAH EXPRESS',
                   ),
                 ),
 
@@ -81,7 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 16, offset: const Offset(0, 6)),
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 16, offset: const Offset(0, 6)),
                     ],
                   ),
                   child: Column(
@@ -147,7 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.08),
+                    color: Colors.white.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.white12),
                   ),

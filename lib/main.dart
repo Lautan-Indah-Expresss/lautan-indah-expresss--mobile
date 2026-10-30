@@ -1,19 +1,14 @@
 import 'package:flutter/material.dart';
 import 'core/theme.dart';
-import 'core/session_manager.dart';
-import 'screens/driver_login_screen.dart';
-import 'screens/driver_home_screen.dart';
+import 'screens/splash_screen.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  final isLoggedIn = await SessionManager.isLoggedIn();
-  runApp(LieDriverApp(initialLoggedIn: isLoggedIn));
+  runApp(const LieDriverApp());
 }
 
 class LieDriverApp extends StatelessWidget {
-  final bool initialLoggedIn;
-
-  const LieDriverApp({super.key, required this.initialLoggedIn});
+  const LieDriverApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -21,9 +16,7 @@ class LieDriverApp extends StatelessWidget {
       title: 'LIE Driver',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: initialLoggedIn
-          ? const DriverHomeScreen()
-          : const DriverLoginScreen(),
+      home: const SplashScreen(),
     );
   }
 }
